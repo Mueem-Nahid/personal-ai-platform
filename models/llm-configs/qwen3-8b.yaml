@@ -1,0 +1,31 @@
+name: qwen3-8b
+provider: Qwen
+license: Apache-2.0
+context_window: 32768
+quantization: Q4_K_M
+size_gb: 5
+ollama_tag: qwen3:8b
+source: https://huggingface.co/Qwen/Qwen3-8B
+
+use_cases:
+  - resume customization
+  - cover letter generation
+  - interview question generation
+  - mock interview feedback
+  - job-fit analysis
+  - company research summarization
+
+hardware:
+  min_vram_gb: 8
+  recommended_vram_gb: 12
+  cpu_only: true  # slower but functional
+
+parameters:
+  temperature: 0.6
+  top_p: 0.9
+  repeat_penalty: 1.1
+  num_ctx: 32768
+
+notes: |
+  Default general-purpose model. Good balance of quality and resource cost.
+  For coding-heavy tasks consider pairing with a coding-focused model.

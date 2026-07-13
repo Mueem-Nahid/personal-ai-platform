@@ -1,0 +1,29 @@
+name: phi-4-mini
+provider: Microsoft
+license: MIT
+context_window: 128000
+quantization: Q4_K_M
+size_gb: 2.5
+ollama_tag: phi4-mini
+source: https://huggingface.co/microsoft/Phi-4-mini-instruct
+
+use_cases:
+  - lightweight fallback when GPU unavailable
+  - quick classification tasks
+  - simple extraction
+  - offline edge inference
+
+hardware:
+  min_vram_gb: 4
+  recommended_vram_gb: 6
+  cpu_only: true
+
+parameters:
+  temperature: 0.5
+  top_p: 0.9
+  repeat_penalty: 1.1
+  num_ctx: 16384
+
+notes: |
+  Use as a fallback for machines that cannot run qwen3:8b comfortably.
+  Lower quality on complex reasoning but very fast and small.

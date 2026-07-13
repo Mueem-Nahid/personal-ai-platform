@@ -1,0 +1,19 @@
+name: bge-m3
+provider: BAAI
+license: MIT
+dims: 1024
+max_tokens: 8192
+languages: multilingual
+source: https://huggingface.co/BAAI/bge-m3
+ollama_tag: bge-m3
+
+use_cases:
+  - cv section embedding
+  - job description embedding
+  - semantic similarity for matching
+  - retrieval augmented generation
+
+notes: |
+  bge-m3 produces 1024-dim vectors and supports dense, sparse, and multi-vector
+  retrieval. For our scope we use dense embeddings only. Store in Qdrant with
+  cosine similarity.
