@@ -7,17 +7,17 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.pool import NullPool
 
 from core.config import settings
-
-Base = declarative_base()
+from database.base import Base
 
 engine = create_async_engine(
     settings.database_url,
     echo=settings.database_echo,
     pool_pre_ping=True,
     future=True,
+    poolclass=NullPool,
 )
 
 SessionLocal = async_sessionmaker(
