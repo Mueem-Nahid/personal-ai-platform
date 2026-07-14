@@ -181,5 +181,6 @@ for _path, (_model, _create, _update, _out) in _ENTITY_CONFIG.items():
         _make_delete_endpoint(_model, _path),
         methods=["DELETE"],
         status_code=status.HTTP_204_NO_CONTENT,
+        response_model=None,
         summary=f"Delete {_path[:-1]}",
     )

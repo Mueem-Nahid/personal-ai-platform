@@ -50,7 +50,7 @@ async def update_profile(
     return ProfileOut.model_validate(profile)
 
 
-@router.delete("/{profile_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{profile_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_profile(profile_id: UUID, session: AsyncSession = Depends(get_session)) -> None:
     service = ProfileService(session)
     try:
