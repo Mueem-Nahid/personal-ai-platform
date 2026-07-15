@@ -124,3 +124,32 @@ export interface Profile {
 
 export type ProfileCreate = Omit<Profile, "id" | "created_at" | "updated_at">;
 export type ProfileUpdate = Partial<Omit<Profile, "id" | "created_at" | "updated_at" | "experiences" | "projects" | "education" | "skills" | "certificates" | "achievements" | "publications" | "languages">>;
+
+export interface DocumentChunk {
+  id: string;
+  document_id: string;
+  profile_id: string;
+  chunk_index: number;
+  text_content: string;
+  qdrant_point_id?: string | null;
+  created_at: string;
+}
+
+export interface DocumentOut {
+  id: string;
+  profile_id: string;
+  filename: string;
+  file_type: string;
+  file_size_bytes?: number | null;
+  status: string;
+  chunk_count?: number | null;
+  metadata?: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+  chunks?: DocumentChunk[];
+}
+
+export interface DocumentListOut {
+  documents: DocumentOut[];
+  total: number;
+}

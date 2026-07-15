@@ -1,3 +1,4 @@
+from models.knowledge import Document, DocumentChunk
 from models.profile import (
     Achievement,
     Certificate,
@@ -13,6 +14,8 @@ from models.profile import (
 __all__ = [
     "Achievement",
     "Certificate",
+    "Document",
+    "DocumentChunk",
     "Education",
     "Experience",
     "Language",

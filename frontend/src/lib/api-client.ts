@@ -10,6 +10,8 @@ import type {
   Achievement,
   Publication,
   Language,
+  DocumentOut,
+  DocumentListOut,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "/api";
@@ -101,4 +103,25 @@ export const api = {
     request<Language>(`/profiles/${profileId}/languages/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteLanguage: (profileId: string, id: string) =>
     request<void>(`/profiles/${profileId}/languages/${id}`, { method: "DELETE" }),
+
+  // Knowledge Base
+  uploadDocument: async (profileId: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${BASE}/profiles/${profileId}/knowledge`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => res.statusText);
+      throw new Error(`Upload failed: ${res.status} ${text}`);
+    }
+    return res.json() as Promise<DocumentOut>;
+  },
+  listDocuments: (profileId: string) =>
+    request<DocumentListOut>(`/profiles/${profileId}/knowledge`),
+  getDocument: (profileId: string, documentId: string) =>
+    request<DocumentOut>(`/profiles/${profileId}/knowledge/${documentId}`),
+  deleteDocument: (profileId: string, documentId: string) =>
+    request<void>(`/profiles/${profileId}/knowledge/${documentId}`, { method: "DELETE" }),
 };

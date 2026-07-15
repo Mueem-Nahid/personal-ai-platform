@@ -1,26 +1,30 @@
 import Link from "next/link";
+import { Button } from "@/components/atoms/Button";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
+    <div className="flex min-h-[70vh] flex-col items-center justify-center">
       <h1 className="text-4xl font-bold">Career Agent</h1>
       <p className="mt-4 text-lg opacity-70">
         Offline personalized job-application agent.
       </p>
       <div className="mt-8 flex gap-4">
-        <Link
-          href="/profile"
-          className="rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700"
-        >
-          Profile Editor
+        <Link href="/profile">
+          <Button variant="primary" size="lg">
+            Profile Editor
+          </Button>
         </Link>
-        <Link
-          href="http://localhost:8000/api/v1/docs"
-          className="rounded-lg border px-6 py-3 hover:bg-gray-100 dark:hover:bg-gray-800"
-        >
-          API Docs
+        <Link href="/knowledge">
+          <Button variant="secondary" size="lg">
+            Knowledge Base
+          </Button>
         </Link>
+        <a href="http://localhost:8000/api/v1/docs">
+          <Button variant="secondary" size="lg">
+            API Docs
+          </Button>
+        </a>
       </div>
-    </main>
+    </div>
   );
 }
