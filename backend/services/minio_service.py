@@ -17,13 +17,17 @@ class MinioService:
             secret_key=settings.minio_secret_key,
             secure=settings.minio_secure,
         )
-        self._ensure_bucket()
+        self._bucket_ensured = False
 
     def _ensure_bucket(self) -> None:
+        if self._bucket_ensured:
+            return
         if not self._client.bucket_exists(settings.minio_bucket):
             self._client.make_bucket(settings.minio_bucket)
+        self._bucket_ensured = True
 
     def upload(self, data: bytes, filename: str, content_type: str = "application/octet-stream") -> str:
+        self._ensure_bucket()
         object_key = f"knowledge/{uuid.uuid4()}/{filename}"
         self._client.put_object(
             settings.minio_bucket,
@@ -35,6 +39,7 @@ class MinioService:
         return object_key
 
     def download(self, object_key: str) -> bytes:
+        self._ensure_bucket()
         response = self._client.get_object(settings.minio_bucket, object_key)
         try:
             return response.read()
@@ -43,6 +48,7 @@ class MinioService:
             response.release_conn()
 
     def delete(self, object_key: str) -> None:
+        self._ensure_bucket()
         try:
             self._client.remove_object(settings.minio_bucket, object_key)
         except S3Error:

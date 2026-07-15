@@ -12,7 +12,7 @@ from services.knowledge_service import KnowledgeService
 router = APIRouter()
 
 
-@router.post("", response_model=DocumentOut, status_code=status.HTTP_201_CREATED)
+@router.post("/{profile_id}/knowledge", response_model=DocumentOut, status_code=status.HTTP_201_CREATED)
 async def upload_document(
     profile_id: UUID,
     file: UploadFile,
@@ -36,7 +36,7 @@ async def upload_document(
     return DocumentOut.model_validate(document)
 
 
-@router.get("", response_model=DocumentListOut)
+@router.get("/{profile_id}/knowledge", response_model=DocumentListOut)
 async def list_documents(
     profile_id: UUID,
     session: AsyncSession = Depends(get_session),
@@ -49,7 +49,7 @@ async def list_documents(
     )
 
 
-@router.get("/{document_id}", response_model=DocumentOut)
+@router.get("/{profile_id}/knowledge/{document_id}", response_model=DocumentOut)
 async def get_document(
     profile_id: UUID,
     document_id: UUID,
@@ -62,7 +62,7 @@ async def get_document(
     return DocumentOut.model_validate(document)
 
 
-@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+@router.delete("/{profile_id}/knowledge/{document_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_document(
     profile_id: UUID,
     document_id: UUID,
@@ -70,6 +70,6 @@ async def delete_document(
 ) -> None:
     service = KnowledgeService(session)
     try:
-        await service.delete_document(document_id)
+        await service.delete_document(document_id, profile_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Document not found")

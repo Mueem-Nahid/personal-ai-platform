@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import uuid
+import asyncio
 import logging
+import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,7 +36,7 @@ class KnowledgeService:
         file_data: bytes,
         file_size: int,
     ) -> Document:
-        object_key = self._minio.upload(file_data, filename)
+        object_key = await asyncio.to_thread(self._minio.upload, file_data, filename)
         document = Document(
             profile_id=profile_id,
             filename=filename,
@@ -90,11 +91,11 @@ class KnowledgeService:
     async def list_documents(self, profile_id: uuid.UUID) -> list[Document]:
         return await self._doc_repo.list_by_profile(profile_id)
 
-    async def delete_document(self, document_id: uuid.UUID) -> None:
+    async def delete_document(self, document_id: uuid.UUID, profile_id: uuid.UUID) -> None:
         document = await self._doc_repo.get_with_chunks(document_id)
-        if document is None:
+        if document is None or str(document.profile_id) != str(profile_id):
             raise ValueError(f"Document {document_id} not found")
         if document.minio_object_key:
-            self._minio.delete(document.minio_object_key)
+            await asyncio.to_thread(self._minio.delete, document.minio_object_key)
         await self._qdrant.delete_by_document(document_id)
         await self._doc_repo.delete(document)

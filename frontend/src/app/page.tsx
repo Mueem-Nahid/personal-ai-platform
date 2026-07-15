@@ -19,7 +19,7 @@ export default function Home() {
             Knowledge Base
           </Button>
         </Link>
-        <a href="http://localhost:8000/api/v1/docs">
+        <a href={`${process.env.NEXT_PUBLIC_API_BASE ?? "/api"}/docs`}>
           <Button variant="secondary" size="lg">
             API Docs
           </Button>

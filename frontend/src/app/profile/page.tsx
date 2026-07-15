@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api-client";
 import type { Profile, Skill } from "@/lib/types";
+import { useProfiles } from "@/hooks/useProfiles";
 import { PageHeader } from "@/components/organisms/PageHeader";
 import { ProfileSelector } from "@/components/organisms/ProfileSelector";
 import { ErrorBanner } from "@/components/organisms/ErrorBanner";
@@ -11,56 +11,22 @@ import { SkillsEditor } from "@/components/organisms/SkillsEditor";
 import { SectionCard } from "@/components/organisms/SectionCard";
 
 export default function ProfilePage() {
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadProfiles = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await api.listProfiles();
-      setProfiles(data);
-      if (data.length > 0 && !selectedProfile) {
-        setSelectedProfile(data[0]);
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load profiles");
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedProfile]);
-
-  useEffect(() => {
-    loadProfiles();
-  }, [loadProfiles]);
-
-  const createProfile = async () => {
-    try {
-      const profile = await api.createProfile({
-        full_name: "New User",
-        experiences: [],
-        projects: [],
-        education: [],
-        skills: [],
-        certificates: [],
-        achievements: [],
-        publications: [],
-        languages: [],
-      });
-      setProfiles((prev) => [...prev, profile]);
-      setSelectedProfile(profile);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create profile");
-    }
-  };
+  const {
+    profiles,
+    selectedProfile,
+    setSelectedProfile,
+    loading,
+    error,
+    createProfile,
+    clearError,
+    setError,
+  } = useProfiles();
 
   const updateField = async (field: keyof Profile, value: string) => {
     if (!selectedProfile?.id) return;
     try {
       const updated = await api.updateProfile(selectedProfile.id, { [field]: value });
       setSelectedProfile(updated);
-      setProfiles((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update profile");
     }
@@ -120,7 +86,7 @@ export default function ProfilePage() {
     <div>
       <PageHeader title="Profile Editor" backHref="/" />
 
-      <ErrorBanner error={error} onDismiss={() => setError(null)} />
+      <ErrorBanner error={error} onDismiss={clearError} />
 
       <ProfileSelector
         profiles={profiles}

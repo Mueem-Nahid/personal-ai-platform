@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { DocumentOut } from "@/lib/types";
 import { api } from "@/lib/api-client";
 import { Button } from "@/components/atoms/Button";
@@ -29,6 +29,10 @@ export function KnowledgeBase({ profileId }: KnowledgeBaseProps) {
     }
   }, [profileId]);
 
+  useEffect(() => {
+    loadDocuments();
+  }, [loadDocuments]);
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -51,10 +55,6 @@ export function KnowledgeBase({ profileId }: KnowledgeBaseProps) {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Delete failed");
     }
-  };
-
-  const handleView = (documentId: string) => {
-    console.log("View document", documentId);
   };
 
   return (
@@ -83,7 +83,7 @@ export function KnowledgeBase({ profileId }: KnowledgeBaseProps) {
 
       <div className="space-y-2">
         {documents.map((doc) => (
-          <DocumentCard key={doc.id} document={doc} onDelete={handleDelete} onView={handleView} />
+          <DocumentCard key={doc.id} document={doc} onDelete={handleDelete} onView={() => {}} />
         ))}
         {!loading && documents.length === 0 && (
           <p className="text-sm opacity-50">
