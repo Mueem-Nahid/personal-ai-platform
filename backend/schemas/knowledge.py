@@ -34,7 +34,7 @@ class DocumentOut(DocumentBase, ORMBase):
     profile_id: UUID
     status: str
     chunk_count: int | None = None
-    metadata: dict | None = None
+    doc_metadata: dict | None = None
     created_at: datetime
     updated_at: datetime
     chunks: list[DocumentChunkOut] = []
