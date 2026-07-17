@@ -143,7 +143,7 @@ export interface DocumentOut {
   file_size_bytes?: number | null;
   status: string;
   chunk_count?: number | null;
-  doc_metadata?: Record<string, unknown> | null;
+  extra_metadata?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
   chunks?: DocumentChunk[];

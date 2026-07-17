@@ -28,7 +28,7 @@ def upgrade() -> None:
         sa.Column("minio_object_key", sa.String(500), nullable=True),
         sa.Column("status", sa.String(20), server_default=sa.text("'uploaded'"), nullable=False),
         sa.Column("chunk_count", sa.Integer(), nullable=True),
-        sa.Column("doc_metadata", JSONB(), nullable=True),
+        sa.Column("extra_metadata", JSONB(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
     )
