@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { DocumentOut } from "@/lib/types";
 import { api } from "@/lib/api-client";
 import { Button } from "@/components/atoms/Button";
@@ -16,6 +16,7 @@ export function KnowledgeBase({ profileId }: KnowledgeBaseProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadDocuments = useCallback(async () => {
     try {
@@ -62,18 +63,23 @@ export function KnowledgeBase({ profileId }: KnowledgeBaseProps) {
       <ErrorBanner error={error} onDismiss={() => setError(null)} />
 
       <div className="flex items-center gap-4">
-        <label className="cursor-pointer">
-          <Button variant="primary" size="md" disabled={uploading}>
-            {uploading ? "Uploading..." : "Upload Document"}
-          </Button>
-          <input
-            type="file"
-            className="hidden"
-            accept=".pdf,.docx,.doc,.txt,.md"
-            onChange={handleUpload}
-            disabled={uploading}
-          />
-        </label>
+        <Button
+          type="button"
+          variant="primary"
+          size="md"
+          disabled={uploading}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {uploading ? "Uploading..." : "Upload Document"}
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept=".pdf,.docx,.doc,.txt,.md"
+          onChange={handleUpload}
+          disabled={uploading}
+        />
         <Button variant="secondary" size="md" onClick={loadDocuments} disabled={loading}>
           Refresh
         </Button>
