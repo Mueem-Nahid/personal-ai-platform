@@ -7,6 +7,7 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/profile", label: "Profile" },
   { href: "/knowledge", label: "Knowledge Base" },
+  { href: "/jobs", label: "Jobs" },
 ];
 
 export function PageShell({ children }: { children: React.ReactNode }) {

@@ -1,3 +1,4 @@
+from models.job import JobPost
 from models.knowledge import Document, DocumentChunk
 from models.profile import (
     Achievement,
@@ -18,6 +19,7 @@ __all__ = [
     "DocumentChunk",
     "Education",
     "Experience",
+    "JobPost",
     "Language",
     "Profile",
     "Project",

@@ -12,6 +12,8 @@ import type {
   Language,
   DocumentOut,
   DocumentListOut,
+  JobPost,
+  JobPostListOut,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "/api";
@@ -124,4 +126,23 @@ export const api = {
     request<DocumentOut>(`/profiles/${profileId}/knowledge/${documentId}`),
   deleteDocument: (profileId: string, documentId: string) =>
     request<void>(`/profiles/${profileId}/knowledge/${documentId}`, { method: "DELETE" }),
+
+  // Jobs
+  parseJobUrl: (url: string) =>
+    request<JobPost>("/jobs/parse-url", { method: "POST", body: JSON.stringify({ url }) }),
+  parseJobText: (text: string, url?: string | null) =>
+    request<JobPost>("/jobs/parse-text", { method: "POST", body: JSON.stringify({ text, url }) }),
+  parseJobPdf: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${BASE}/jobs/parse-pdf`, { method: "POST", body: formData });
+    if (!res.ok) {
+      const text = await res.text().catch(() => res.statusText);
+      throw new Error(`Parse failed: ${res.status} ${text}`);
+    }
+    return res.json() as Promise<JobPost>;
+  },
+  listJobs: () => request<JobPostListOut>("/jobs"),
+  getJob: (id: string) => request<JobPost>(`/jobs/${id}`),
+  deleteJob: (id: string) => request<void>(`/jobs/${id}`, { method: "DELETE" }),
 };

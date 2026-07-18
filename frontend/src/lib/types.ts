@@ -154,3 +154,36 @@ export interface DocumentListOut {
   documents: DocumentOut[];
   total: number;
 }
+
+export interface JobParsedFields {
+  title?: string | null;
+  company?: string | null;
+  location?: string | null;
+  salary?: string | null;
+  experience?: string | null;
+  employment_type?: string | null;
+  requirements?: string[];
+  responsibilities?: string[];
+  skills?: string[];
+  keywords?: string[];
+  tech_stack?: string[];
+}
+
+export interface JobPost {
+  id: string;
+  url?: string | null;
+  title?: string | null;
+  company?: string | null;
+  location?: string | null;
+  source: string;
+  status: string;
+  raw_text?: string | null;
+  parsed_fields?: JobParsedFields | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JobPostListOut {
+  jobs: JobPost[];
+  total: number;
+}
