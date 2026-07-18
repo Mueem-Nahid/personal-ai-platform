@@ -5,6 +5,7 @@ import type { DocumentOut } from "@/lib/types";
 import { api } from "@/lib/api-client";
 import { Button } from "@/components/atoms/Button";
 import { DocumentCard } from "@/components/molecules/DocumentCard";
+import { DocumentViewer } from "@/components/organisms/DocumentViewer";
 import { ErrorBanner } from "@/components/organisms/ErrorBanner";
 
 interface KnowledgeBaseProps {
@@ -16,6 +17,7 @@ export function KnowledgeBase({ profileId }: KnowledgeBaseProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [viewingDoc, setViewingDoc] = useState<DocumentOut | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadDocuments = useCallback(async () => {
@@ -46,6 +48,15 @@ export function KnowledgeBase({ profileId }: KnowledgeBaseProps) {
     } finally {
       setUploading(false);
       e.target.value = "";
+    }
+  };
+
+  const handleView = async (documentId: string) => {
+    try {
+      const doc = await api.getDocument(profileId, documentId);
+      setViewingDoc(doc);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load document");
     }
   };
 
@@ -89,7 +100,7 @@ export function KnowledgeBase({ profileId }: KnowledgeBaseProps) {
 
       <div className="space-y-2">
         {documents.map((doc) => (
-          <DocumentCard key={doc.id} document={doc} onDelete={handleDelete} onView={() => {}} />
+          <DocumentCard key={doc.id} document={doc} onDelete={handleDelete} onView={handleView} />
         ))}
         {!loading && documents.length === 0 && (
           <p className="text-sm opacity-50">
@@ -97,6 +108,8 @@ export function KnowledgeBase({ profileId }: KnowledgeBaseProps) {
           </p>
         )}
       </div>
+
+      <DocumentViewer document={viewingDoc} onClose={() => setViewingDoc(null)} />
     </div>
   );
 }
