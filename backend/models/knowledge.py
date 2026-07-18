@@ -25,6 +25,7 @@ class Document(UUIDMixin, TimestampMixin, Base):
         String(20), default="uploaded", nullable=False
     )
     chunk_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    extracted_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     extra_metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     chunks: Mapped[list[DocumentChunk]] = relationship(

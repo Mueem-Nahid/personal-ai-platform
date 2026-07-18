@@ -34,6 +34,7 @@ class DocumentOut(DocumentBase, ORMBase):
     profile_id: UUID
     status: str
     chunk_count: int | None = None
+    extracted_text: str | None = None
     extra_metadata: dict | None = None
     created_at: datetime
     updated_at: datetime

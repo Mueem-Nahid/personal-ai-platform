@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import type { DocumentOut } from "@/lib/types";
 import { Badge } from "@/components/atoms/Badge";
 import { Button } from "@/components/atoms/Button";
@@ -18,6 +18,8 @@ interface DocumentViewerProps {
 }
 
 export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) {
+  const [showChunks, setShowChunks] = useState(false);
+
   useEffect(() => {
     if (!doc) return;
     const handleKey = (e: KeyboardEvent) => {
@@ -28,6 +30,9 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
   }, [doc, onClose]);
 
   if (!doc) return null;
+
+  const hasFullText = Boolean(doc.extracted_text);
+  const hasChunks = doc.chunks && doc.chunks.length > 0;
 
   return (
     <div
@@ -51,20 +56,53 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
             Close
           </Button>
         </div>
-        <div className="flex-1 space-y-3 overflow-y-auto p-4">
-          {(!doc.chunks || doc.chunks.length === 0) && (
+
+        <div className="flex-1 overflow-y-auto p-4">
+          {hasFullText ? (
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">{doc.extracted_text}</p>
+          ) : hasChunks ? (
+            <div className="space-y-3">
+              {doc.chunks!.map((chunk) => (
+                <div key={chunk.id} className="rounded border p-3 dark:border-gray-700">
+                  <p className="mb-1 text-xs font-medium opacity-50">
+                    Chunk {chunk.chunk_index + 1}
+                  </p>
+                  <p className="whitespace-pre-wrap text-sm">{chunk.text_content}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
             <p className="text-sm opacity-50">
               No extracted content available for this document.
             </p>
           )}
-          {doc.chunks?.map((chunk) => (
-            <div key={chunk.id} className="rounded border p-3 dark:border-gray-700">
-              <p className="mb-1 text-xs font-medium opacity-50">
-                Chunk {chunk.chunk_index + 1}
-              </p>
-              <p className="whitespace-pre-wrap text-sm">{chunk.text_content}</p>
-            </div>
-          ))}
+
+          {hasChunks && (
+            <details
+              className="mt-4 border-t pt-4 dark:border-gray-700"
+              open={showChunks}
+              onToggle={(e) => setShowChunks((e.target as HTMLDetailsElement).open)}
+            >
+              <summary className="cursor-pointer text-xs font-medium opacity-50 hover:opacity-75">
+                Chunks (debug) &mdash; {doc.chunk_count ?? doc.chunks!.length} segments
+              </summary>
+              <div className="mt-3 space-y-3">
+                {doc.chunks!.map((chunk) => (
+                  <div
+                    key={chunk.id}
+                    className="rounded border border-dashed p-3 dark:border-gray-600"
+                  >
+                    <p className="mb-1 text-xs font-medium opacity-50">
+                      Chunk {chunk.chunk_index + 1}
+                    </p>
+                    <p className="whitespace-pre-wrap text-xs opacity-70">
+                      {chunk.text_content}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
         </div>
       </div>
     </div>

@@ -61,6 +61,7 @@ class KnowledgeService:
         document = await self._doc_repo.update(document)
 
         text = self._extraction.extract(file_data, document.file_type)
+        document.extracted_text = text
         chunks_text = self._chunking.chunk(text)
         if not chunks_text:
             document.status = "failed"
