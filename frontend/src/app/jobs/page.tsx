@@ -3,11 +3,11 @@
 import { useState, useCallback, useEffect } from "react";
 import type { JobPost } from "@/lib/types";
 import { api } from "@/lib/api-client";
-import { PageShell } from "@/components/templates/PageShell";
 import { ErrorBanner } from "@/components/organisms/ErrorBanner";
 import { JobParser } from "@/components/organisms/JobParser";
 import { JobViewer } from "@/components/organisms/JobViewer";
 import { JobCard } from "@/components/molecules/JobCard";
+import { PageHeader } from "@/components/organisms/PageHeader";
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<JobPost[]>([]);
@@ -90,9 +90,8 @@ export default function JobsPage() {
   };
 
   return (
-    <PageShell>
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Jobs</h1>
+      <div>
+        <PageHeader title="Jobs" backHref="/" />
 
         <ErrorBanner error={error} onDismiss={() => setError(null)} />
 
@@ -116,6 +115,5 @@ export default function JobsPage() {
 
         <JobViewer job={viewingJob} onClose={() => setViewingJob(null)} />
       </div>
-    </PageShell>
   );
 }
