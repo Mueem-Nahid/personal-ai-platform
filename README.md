@@ -56,7 +56,7 @@ cd backend && pytest
 
 ## Status
 
-Phase 0 — project scaffolding complete. See `docs/roadmap/phases.md` for the 16-phase plan.
+Phase 3 — Job Parser in progress. See `docs/roadmap/phases.md` for the 16-phase plan.
 
 ## License
 

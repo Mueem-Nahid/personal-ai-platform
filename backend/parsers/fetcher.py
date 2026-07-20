@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
 from bs4 import BeautifulSoup
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -19,20 +19,28 @@ HEADERS = {
 
 async def fetch_url_text(url: str) -> str:
     try:
-        import httpx
-    except ImportError:
-        logger.error("httpx not available")
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(20),
+            follow_redirects=True,
+            headers=HEADERS,
+        ) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+            html = resp.text
+    except httpx.HTTPStatusError as e:
+        logger.warning("HTTP error fetching %s: %s", url, e.response.status_code)
         return ""
-
-    async with httpx.AsyncClient(timeout=httpx.Timeout(20), follow_redirects=True, headers=HEADERS) as client:
-        resp = await client.get(url)
-        resp.raise_for_status()
-        html = resp.text
+    except (httpx.RequestError, Exception) as e:
+        logger.warning("Network error fetching %s: %s", url, e)
+        return ""
 
     text = _clean_html(html)
 
     if len(text.strip()) < 400:
-        logger.info("Static fetch yielded short content (%d chars), trying Playwright fallback", len(text))
+        logger.info(
+            "Static fetch yielded short content (%d chars), trying Playwright fallback",
+            len(text),
+        )
         playwright_text = await _fetch_playwright(url)
         if playwright_text and len(playwright_text) > len(text):
             return playwright_text

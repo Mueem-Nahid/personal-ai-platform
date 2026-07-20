@@ -1,3 +1,4 @@
+import asyncio
 import httpx
 import pytest
 from httpx import ASGITransport
@@ -29,6 +30,8 @@ Skills: Python, Go, PostgreSQL, Redis, Kubernetes, Docker, gRPC, AWS
 Tech Stack: Python, Go, PostgreSQL, Redis, Kubernetes, Docker, AWS, Terraform
 """
 
+POLL_TIMEOUT = 300
+
 
 @pytest.fixture
 async def client():
@@ -37,14 +40,27 @@ async def client():
         yield c
 
 
+async def poll_until_done(client: httpx.AsyncClient, job_id: str, timeout: int = POLL_TIMEOUT) -> dict:
+    deadline = asyncio.get_event_loop().time() + timeout
+    while asyncio.get_event_loop().time() < deadline:
+        resp = await client.get(f"/api/v1/jobs/{job_id}")
+        if resp.status_code == 200:
+            job = resp.json()
+            if job["status"] != "parsing":
+                return job
+        await asyncio.sleep(3)
+    raise TimeoutError(f"Job {job_id} did not finish within {timeout}s")
+
+
 @pytest.fixture
 async def saved_job(client: httpx.AsyncClient) -> dict:
     response = await client.post(
         "/api/v1/jobs/parse-text",
         json={"text": JOB_TEXT},
     )
-    assert response.status_code == 201
-    return response.json()
+    assert response.status_code == 202
+    job_id = response.json()["job_id"]
+    return await poll_until_done(client, job_id)
 
 
 # ── unit: salary regex ───────────────────────────────────────────────────────
@@ -72,8 +88,12 @@ async def test_parse_text_creates_job(client: httpx.AsyncClient) -> None:
         "/api/v1/jobs/parse-text",
         json={"text": JOB_TEXT},
     )
-    assert response.status_code == 201
-    job = response.json()
+    assert response.status_code == 202
+    body = response.json()
+    assert body["job_id"]
+    assert body["status"] == "parsing"
+
+    job = await poll_until_done(client, body["job_id"])
     assert job["id"]
     assert job["source"] == "text"
     assert job["status"] in ("parsed", "failed")
