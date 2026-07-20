@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
 from pathlib import Path
 
-from jinja2 import Template
 from ollama import AsyncClient
 
 from core.config import settings
@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 _PROMPT_PATH = settings.prompts_path / "parsing" / "job-post.md"
 _json_fence = re.compile(r"```(?:json)?\s*\n?(.*?)\n?```", re.DOTALL)
 
+MAX_TEXT_CHARS = 6000
+
 
 def _load_prompt() -> str:
     return _PROMPT_PATH.read_text(encoding="utf-8")
@@ -23,6 +25,12 @@ def _load_prompt() -> str:
 
 async def llm_parse(text: str) -> JobParsedFields:
     template = _load_prompt()
+
+    if len(text) > MAX_TEXT_CHARS:
+        orig_len = len(text)
+        text = text[:MAX_TEXT_CHARS]
+        logger.info("Truncated job text from %d to %d chars", orig_len, MAX_TEXT_CHARS)
+
     prompt = template.replace("{{ job_text }}", text)
 
     raw = await _call_llm(prompt)
@@ -45,11 +53,18 @@ async def llm_parse(text: str) -> JobParsedFields:
 
 async def _call_llm(prompt: str) -> str:
     client = AsyncClient(host=settings.ollama_url)
-    response = await client.generate(
-        model=settings.ollama_model,
-        prompt=prompt,
-        options={"temperature": 0.1, "num_predict": 2048},
-    )
+    try:
+        response = await asyncio.wait_for(
+            client.generate(
+                model=settings.ollama_model,
+                prompt=prompt,
+                options={"temperature": 0.1, "num_predict": 1024},
+            ),
+            timeout=300.0,
+        )
+    except asyncio.TimeoutError:
+        logger.error("LLM call timed out after 120s")
+        raise
     return response.response.strip()
 
 
