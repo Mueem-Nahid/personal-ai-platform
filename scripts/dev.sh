@@ -5,6 +5,9 @@ set -euo pipefail
 echo "Starting infra services only (postgres, qdrant, redis, minio, ollama)..."
 docker compose up -d postgres qdrant redis minio ollama
 
+echo -e "\nRunning database migrations..."
+(cd backend && alembic upgrade head)
+
 echo -e "\nStarting backend (uvicorn) in background..."
 (cd backend && uvicorn main:app --reload --port 8000) &
 BACKEND_PID=$!

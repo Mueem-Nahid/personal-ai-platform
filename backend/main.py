@@ -3,8 +3,6 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 
-from alembic import command
-from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -18,8 +16,6 @@ from core.config import settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    alembic_cfg = Config("alembic.ini")
-    command.upgrade(alembic_cfg, "head")
     yield
 
 
