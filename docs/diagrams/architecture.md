@@ -15,6 +15,11 @@ flowchart TB
       API[FastAPI Gateway]
     end
 
+    subgraph Queue
+      ARQWorker[ARQ Worker]
+      RedisQ[(Redis ARQ queue)]
+    end
+
     subgraph Agents
       CVAgent[CV Agent]
       JobAgent[Job Analyzer Agent]
@@ -35,18 +40,24 @@ flowchart TB
     subgraph Data
       PG[(PostgreSQL + pgvector)]
       Qdrant[(Qdrant)]
-      Redis[(Redis)]
       MinIO[(MinIO)]
     end
 
     subgraph Inference
-      Ollama[Ollama - Qwen3 8B / bge-m3]
+      GroqLLM[Groq - Llama 3.1 8B (parse)]
+      OllamaEmb[Ollama - bge-m3 (embeddings)]
     end
 
     User --> Web
     User --> CLI
     Web --> API
     CLI --> API
+
+    API -->|enqueue parse| RedisQ
+    ARQWorker -->|dequeue| RedisQ
+    ARQWorker --> GroqLLM
+    ARQWorker --> PG
+
     API --> CVAgent
     API --> JobAgent
     API --> IntAgent
@@ -57,13 +68,13 @@ flowchart TB
     API --> Analytics
 
     CVAgent --> Qdrant
-    CVAgent --> Ollama
+    CVAgent --> OllamaEmb
     JobAgent --> Qdrant
-    JobAgent --> Ollama
-    IntAgent --> Ollama
-    CoverAgent --> Ollama
-    CompanyAgent --> Ollama
-    LearnAgent --> Ollama
+    JobAgent --> OllamaEmb
+    IntAgent --> OllamaEmb
+    CoverAgent --> OllamaEmb
+    CompanyAgent --> OllamaEmb
+    LearnAgent --> OllamaEmb
 
     Parser --> PG
     Parser --> Qdrant
@@ -71,11 +82,45 @@ flowchart TB
     Analytics --> PG
     Memory --> Qdrant
     Memory --> PG
-    Scheduler --> Redis
+    Scheduler --> RedisQ
     Scheduler --> API
 
     CVAgent --> MinIO
     Parser --> MinIO
+```
+
+## Job Parsing Sequence (Phase 3 — ARQ + Groq)
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as Frontend (Next.js)
+    participant A as FastAPI
+    participant R as Redis (ARQ)
+    participant W as ARQ Worker
+    participant L as Groq LLM
+    participant DB as PostgreSQL
+
+    U->>F: paste job text, click Parse
+    F->>A: POST /api/v1/jobs/parse-text {text}
+    A->>DB: INSERT JobPost (status="parsing")
+    A->>R: enqueue_job("parse_text", job_id, text)
+    A-->>F: 202 {job_id, status:"parsing"}
+
+    loop poll every 2s (max 60s)
+        F->>A: GET /api/v1/jobs/{job_id}
+        A-->>F: {status: "parsing"}
+    end
+
+    W->>R: dequeue parse_text
+    W->>DB: SELECT JobPost
+    W->>L: llm_parse(raw_text) via Groq API
+    L-->>W: JSON {title, company, skills, ...}
+    W->>DB: UPDATE JobPost (status="parsed", parsed_fields)
+
+    F->>A: GET /api/v1/jobs/{job_id}
+    A-->>F: {status: "parsed", parsed_fields: {...}}
+    F-->>U: show parsed result
 ```
 
 ## CV Customization Sequence
@@ -87,7 +132,7 @@ sequenceDiagram
     participant A as API
     participant DB as PostgreSQL
     participant V as Qdrant
-    participant L as Ollama
+    participant L as Ollama (local)
     participant M as MinIO
 
     U->>W: select job + template
@@ -110,7 +155,7 @@ sequenceDiagram
     participant U as User
     participant W as Web/CLI
     participant A as API
-    participant L as Ollama
+    participant L as Ollama (local)
     participant DB as PostgreSQL
 
     U->>W: start interview (app_id)

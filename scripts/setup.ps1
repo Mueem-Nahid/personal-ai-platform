@@ -5,14 +5,11 @@
 $ErrorActionPreference = "Stop"
 
 Write-Host "Starting Career Agent stack..." -ForegroundColor Cyan
-docker compose up -d
+docker compose up -d --wait
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: docker compose up failed. Fix build errors then rerun this script." -ForegroundColor Red
     exit 1
 }
-
-Write-Host "`nWaiting for services to be healthy..." -ForegroundColor Yellow
-Start-Sleep -Seconds 8
 
 Write-Host "`nPulling default LLM (qwen3:8b) — one-time, ~5GB..." -ForegroundColor Cyan
 docker exec career-agent-ollama ollama pull qwen3:8b

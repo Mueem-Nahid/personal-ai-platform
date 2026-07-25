@@ -4,13 +4,10 @@
 set -euo pipefail
 
 echo "Starting Career Agent stack..."
-if ! docker compose up -d; then
+if ! docker compose up -d --wait; then
   echo "ERROR: docker compose up failed. Fix build errors then rerun this script." >&2
   exit 1
 fi
-
-echo -e "\nWaiting for services to be healthy..."
-sleep 8
 
 echo -e "\nPulling default LLM (qwen3:8b) — one-time, ~5GB..."
 if ! docker exec career-agent-ollama ollama pull qwen3:8b; then
