@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import asyncio
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_session
-from core.database import SessionLocal
 from schemas.job import (
     JobParsedFields,
     JobPostListOut,
@@ -15,11 +13,11 @@ from schemas.job import (
     ParseTextRequest,
     ParseUrlRequest,
 )
+from services.extraction_service import ExtractionService
 from services.job_service import JobService
+from workers.redis_pool import get_redis
 
 router = APIRouter()
-
-_background_tasks: set[asyncio.Task] = set()
 
 
 @router.post("/parse-url", status_code=status.HTTP_202_ACCEPTED)
@@ -29,9 +27,8 @@ async def parse_from_url(
 ) -> dict:
     service = JobService(session)
     job = await service.create_pending(text=None, url=body.url, source="url")
-    task = asyncio.create_task(_process_url_background(job.id, body.url))
-    _background_tasks.add(task)
-    task.add_done_callback(_background_tasks.discard)
+    redis = await get_redis()
+    await redis.enqueue_job("parse_url", str(job.id), body.url)
     return {"job_id": str(job.id), "status": "parsing"}
 
 
@@ -42,9 +39,8 @@ async def parse_from_text(
 ) -> dict:
     service = JobService(session)
     job = await service.create_pending(text=body.text, url=body.url, source="text")
-    task = asyncio.create_task(_process_text_background(job.id, body.text))
-    _background_tasks.add(task)
-    task.add_done_callback(_background_tasks.discard)
+    redis = await get_redis()
+    await redis.enqueue_job("parse_text", str(job.id), body.text)
     return {"job_id": str(job.id), "status": "parsing"}
 
 
@@ -59,11 +55,11 @@ async def parse_from_pdf(
     if ext != "pdf":
         raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
     data = await file.read()
+    text = ExtractionService.extract(data, "pdf")
     service = JobService(session)
-    job = await service.create_pending(text=None, url=None, source="pdf")
-    task = asyncio.create_task(_process_pdf_background(job.id, data))
-    _background_tasks.add(task)
-    task.add_done_callback(_background_tasks.discard)
+    job = await service.create_pending(text=text, url=None, source="pdf")
+    redis = await get_redis()
+    await redis.enqueue_job("parse_text", str(job.id), text)
     return {"job_id": str(job.id), "status": "parsing"}
 
 
@@ -128,21 +124,3 @@ async def delete_job(
         await service.delete(job_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Job post not found")
-
-
-async def _process_url_background(job_id: UUID, url: str) -> None:
-    async with SessionLocal() as session:
-        service = JobService(session)
-        await service.process_url_background(job_id, url)
-
-
-async def _process_text_background(job_id: UUID, text: str) -> None:
-    async with SessionLocal() as session:
-        service = JobService(session)
-        await service.process_text_background(job_id, text)
-
-
-async def _process_pdf_background(job_id: UUID, data: bytes) -> None:
-    async with SessionLocal() as session:
-        service = JobService(session)
-        await service.process_pdf_background(job_id, data)

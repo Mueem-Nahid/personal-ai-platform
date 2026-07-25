@@ -3,7 +3,7 @@
 set -euo pipefail
 
 echo "Starting infra services only (postgres, qdrant, redis, minio, ollama)..."
-docker compose up -d postgres qdrant redis minio ollama
+docker compose up -d --wait postgres qdrant redis minio ollama
 
 echo -e "\nRunning database migrations..."
 (cd backend && alembic upgrade head)
@@ -12,11 +12,15 @@ echo -e "\nStarting backend (uvicorn) in background..."
 (cd backend && uvicorn main:app --reload --port 8000) &
 BACKEND_PID=$!
 
+echo "Starting ARQ worker in background..."
+(cd backend && arq workers.arq_worker.WorkerSettings) &
+WORKER_PID=$!
+
 echo "Starting frontend (next dev) in background..."
 (cd frontend && npm run dev) &
 FRONTEND_PID=$!
 
-trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null || true" EXIT
+trap "kill $BACKEND_PID $WORKER_PID $FRONTEND_PID 2>/dev/null || true" EXIT
 
 echo -e "\nDev servers launching:"
 echo "  Backend  : http://localhost:8000/api/v1/docs"

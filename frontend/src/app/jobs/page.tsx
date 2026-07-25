@@ -18,8 +18,8 @@ export default function JobsPage() {
   const [viewingJob, setViewingJob] = useState<JobPost | null>(null);
   const isMounted = useRef(true);
 
-  const POLL_TIMEOUT = 360000; // 6 minutes (must exceed LLM timeout of 300s)
-  const POLL_INTERVAL = 3000; // 3 seconds
+  const POLL_TIMEOUT = 60000; // 60 seconds (cloud LLM is <5s; 60s is generous)
+  const POLL_INTERVAL = 2000; // 2 seconds
 
   useEffect(() => {
     return () => { isMounted.current = false; };

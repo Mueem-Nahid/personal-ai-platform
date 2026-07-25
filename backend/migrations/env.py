@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import time
 from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+from sqlalchemy.exc import OperationalError
 
 from core.config import settings
 from database.base import Base
@@ -31,10 +33,23 @@ def run_migrations_online() -> None:
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
-    with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
-        with context.begin_transaction():
-            context.run_migrations()
+    connection = _connect_with_retry(connectable, max_retries=15, delay=2.0)
+    context.configure(connection=connection, target_metadata=target_metadata)
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def _connect_with_retry(engine, *, max_retries: int, delay: float):
+    for attempt in range(1, max_retries + 1):
+        try:
+            return engine.connect()
+        except OperationalError as e:
+            msg = str(e.__cause__ or e)
+            if attempt >= max_retries:
+                raise
+            print(f"Migration connection attempt {attempt}/{max_retries} failed — retrying in {delay}s: {msg}")
+            time.sleep(delay)
+    raise RuntimeError("unreachable")
 
 
 if context.is_offline_mode():
