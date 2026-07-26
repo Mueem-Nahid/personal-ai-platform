@@ -16,12 +16,13 @@ export default function JobsPage() {
   const [parsingMessage, setParsingMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [viewingJob, setViewingJob] = useState<JobPost | null>(null);
-  const isMounted = useRef(true);
+  const isMounted = useRef(false);
 
   const POLL_TIMEOUT = 60000; // 60 seconds (cloud LLM is <5s; 60s is generous)
   const POLL_INTERVAL = 2000; // 2 seconds
 
   useEffect(() => {
+    isMounted.current = true;
     return () => { isMounted.current = false; };
   }, []);
 
