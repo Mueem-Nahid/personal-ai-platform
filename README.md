@@ -88,7 +88,7 @@ Switch at any time by changing `APP_LLM_PROVIDER` in your `.env` or Docker envir
 
 ## Status
 
-Phase 3 — Job Parser **complete**. Parse job postings from URL, text, or PDF using cloud LLM (Groq) with an ARQ Redis worker for background processing. See `docs/roadmap/phases.md` for the 16-phase plan.
+Phase 4 — Job Analysis Agent **complete**. Parse job postings and run fit analysis against candidate profiles using an anonymized digest + cloud LLM (Groq) with ARQ background worker. See `docs/roadmap/phases.md` for the 16-phase plan.
 
 ## License
 

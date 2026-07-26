@@ -8,6 +8,7 @@ from datetime import UTC
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.routes.analyses import router as analyses_router
 from api.routes.health import router as health_router
 from api.routes.jobs import router as jobs_router
 from api.routes.knowledge import router as knowledge_router
@@ -24,6 +25,7 @@ _MAX_FAILED_HOURS = 1
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await _sweep_stale_parsing_jobs()
+    await _sweep_stale_analyses()
     try:
         yield
     finally:
@@ -78,6 +80,36 @@ async def _sweep_stale_parsing_jobs() -> None:
         await session.commit()
 
 
+async def _sweep_stale_analyses() -> None:
+    from datetime import datetime, timedelta
+
+    from sqlalchemy import update
+
+    from core.database import SessionLocal
+    from models.job_analysis import JobAnalysis
+
+    now = datetime.now(UTC)
+    stale_cutoff = now - timedelta(minutes=10)
+
+    async with SessionLocal() as session:
+        result = await session.execute(
+            update(JobAnalysis)
+            .where(
+                JobAnalysis.status == "analyzing",
+                JobAnalysis.updated_at < stale_cutoff,
+            )
+            .values(
+                status="failed",
+                error="Stranded analysis — backend restarted while analysis was running",
+                updated_at=now,
+            )
+        )
+        if result.rowcount:
+            logger.info("Marked %d stale 'analyzing' rows as failed", result.rowcount)
+
+        await session.commit()
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
@@ -113,6 +145,11 @@ def create_app() -> FastAPI:
         jobs_router,
         prefix=f"{settings.api_v1_prefix}/jobs",
         tags=["jobs"],
+    )
+    app.include_router(
+        analyses_router,
+        prefix=f"{settings.api_v1_prefix}/analyses",
+        tags=["analyses"],
     )
     return app
 

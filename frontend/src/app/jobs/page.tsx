@@ -1,21 +1,21 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import type { JobPost } from "@/lib/types";
 import { api } from "@/lib/api-client";
 import { ErrorBanner } from "@/components/organisms/ErrorBanner";
 import { JobParser } from "@/components/organisms/JobParser";
-import { JobViewer } from "@/components/organisms/JobViewer";
 import { JobCard } from "@/components/molecules/JobCard";
 import { PageHeader } from "@/components/organisms/PageHeader";
 
 export default function JobsPage() {
+  const router = useRouter();
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [loading, setLoading] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [parsingMessage, setParsingMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [viewingJob, setViewingJob] = useState<JobPost | null>(null);
   const isMounted = useRef(false);
 
   const POLL_TIMEOUT = 60000; // 60 seconds (cloud LLM is <5s; 60s is generous)
@@ -122,13 +122,8 @@ export default function JobsPage() {
     }
   };
 
-  const handleView = async (jobId: string) => {
-    try {
-      const job = await api.getJob(jobId);
-      setViewingJob(job);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load job");
-    }
+  const handleView = (jobId: string) => {
+    router.push(`/jobs/${jobId}`);
   };
 
   const handleDelete = async (jobId: string) => {
@@ -169,8 +164,6 @@ export default function JobsPage() {
           </p>
         )}
       </div>
-
-      <JobViewer job={viewingJob} onClose={() => setViewingJob(null)} />
     </div>
   );
 }

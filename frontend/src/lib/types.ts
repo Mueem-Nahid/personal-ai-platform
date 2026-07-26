@@ -187,3 +187,39 @@ export interface JobPostListOut {
   jobs: JobPost[];
   total: number;
 }
+
+export interface JobAnalysisReport {
+  matched_skills?: string[];
+  missing_skills?: string[];
+  adjacent_strengths?: string[];
+  strengths?: string[];
+  weaknesses?: string[];
+  experience_fit?: string | null;
+  culture_signals?: string[];
+  ats_score?: number | null;
+  interview_difficulty?: string | null;
+  company_summary?: string | null;
+  likely_interview_topics?: string[];
+  fit_score?: number | null;
+  recommendation?: string | null;
+  justification?: string | null;
+}
+
+export interface JobAnalysis {
+  id: string;
+  job_id: string;
+  profile_id: string;
+  status: string;
+  report?: JobAnalysisReport | null;
+  error?: string | null;
+  provider?: string | null;
+  model?: string | null;
+  prompt_version?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JobAnalysisListOut {
+  analyses: JobAnalysis[];
+  total: number;
+}

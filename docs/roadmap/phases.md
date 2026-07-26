@@ -8,7 +8,7 @@
 | **1** | User profile | Profile CRUD + frontend editor | 2 wk |
 | **2** | Knowledge base | Upload → extract → embed → store pipeline | 3 wk |
 | **3** | Job parser | URL/text/PDF → structured job data (ARQ worker, Groq Llama 3.1 8B, provider abstraction) | 2 wk |
-| **4** | Job analysis agent | Match report (gaps, ATS score, fit) | 2 wk |
+| **4** | Job analysis agent | Match report (gaps, ATS score, fit) ✅ | 2 wk |
 | **5** | Resume builder | Tailored resume with versioning | 3 wk |
 | **6** | PDF engine | HTML/LaTeX/Typst/DOCX → PDF | 2 wk |
 | **7** | ATS optimizer | Score + suggestions | 2 wk |
@@ -51,9 +51,13 @@
 - Background processing via **ARQ Redis worker** (`backend/workers/arq_worker.py`) — durable, retry-capable, decoupled from HTTP event loop
 - Store in `Job_Posts` with parsed JSON. Stale-job sweeper on startup.
 
-### Phase 4 — Job Analysis Agent
+### Phase 4 — Job Analysis Agent ✅
 - Output: Missing skills, Strengths, Weaknesses, ATS score, Culture fit, Interview difficulty, Company summary, Likely interview topics
-- LangGraph agent using embeddings against profile
+- LangGraph agent with 5-node pipeline: retrieve → vector_context → build_prompt → analyze → validate
+- Profile anonymization via `agents/profile_digest.py` — strips PII (name, email, phone, URLs, GPA) before sending to Groq
+- Stored in `job_analyses` table (one per job+profile pair; re-run overwrites)
+- Background processing via ARQ Redis worker with stale-analysis sweeper on startup
+- See [ADR 0005](../adr/0005-anonymized-profile-cloud-analysis.md) for privacy posture
 
 ### Phase 5 — Resume Builder
 - Input: Job + Master Resume → tailored Resume Version

@@ -4,34 +4,36 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from parsers.llm_parser import _repair_json
-from parsers.llm_provider import complete, Provider
+from parsers.llm_provider import Provider, complete
+from utils.json_repair import repair_json
+
+_EXPECTED_FIELDS = frozenset({"title", "company"})
 
 
 def test_repair_json_valid():
-    result = _repair_json('{"title": "Engineer", "company": "Acme"}')
+    result = repair_json('{"title": "Engineer", "company": "Acme"}')
     assert result["title"] == "Engineer"
     assert result["company"] == "Acme"
 
 
 def test_repair_json_with_fence():
-    result = _repair_json('```json\n{"title": "Engineer"}\n```')
+    result = repair_json('```json\n{"title": "Engineer"}\n```')
     assert result["title"] == "Engineer"
 
 
 def test_repair_json_extracts_braces():
-    result = _repair_json('Some leading text {"title": "Engineer", "company": "A"} trailing')
+    result = repair_json('Some leading text {"title": "Engineer", "company": "A"} trailing')
     assert result["title"] == "Engineer"
 
 
 def test_repair_json_raises_on_invalid():
     with pytest.raises(ValueError):
-        _repair_json("not json at all")
+        repair_json("not json at all")
 
 
 def test_repair_json_raises_on_no_expected_fields():
     with pytest.raises(ValueError, match="missing all expected fields"):
-        _repair_json('{"foo": 1, "bar": 2}')
+        repair_json('{"foo": 1, "bar": 2}', expected_fields=_EXPECTED_FIELDS)
 
 
 @pytest.mark.asyncio

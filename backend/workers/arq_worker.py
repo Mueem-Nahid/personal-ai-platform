@@ -60,8 +60,21 @@ async def parse_pdf(ctx: dict, job_id: str, data_b64: str) -> dict:
     return {"job_id": job_id, "status": "completed", "type": "pdf"}
 
 
+async def analyze_job(ctx: dict, analysis_id: str) -> dict:
+    import uuid
+
+    from core.database import SessionLocal
+    from services.job_analysis_service import JobAnalysisService
+
+    async with SessionLocal() as session:
+        service = JobAnalysisService(session)
+        await service.run_background(uuid.UUID(analysis_id))
+        await session.commit()
+    return {"analysis_id": analysis_id, "status": "completed", "type": "analysis"}
+
+
 class WorkerSettings:
-    functions = [parse_url, parse_text, parse_pdf]
+    functions = [parse_url, parse_text, parse_pdf, analyze_job]
     on_startup = startup
     on_shutdown = shutdown
     redis_settings = RedisSettings.from_dsn(settings.redis_url)

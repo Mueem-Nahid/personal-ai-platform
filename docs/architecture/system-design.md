@@ -117,7 +117,7 @@ Each agent is a self-contained unit with:
 
 Planned agents:
 1. CV Agent (resume optimization, ATS, keyword tuning)
-2. Job Analyzer Agent
+2. **Job Analyzer Agent** ✅ (Phase 4)
 3. Cover Letter Agent
 4. Interview Coach Agent
 5. Company Research Agent
@@ -127,6 +127,44 @@ Planned agents:
 9. Salary Negotiation Agent (later)
 10. Mock Interview Agent
 11. Skill Gap Agent
+
+## Job Analyzer Agent (Phase 4)
+
+The Job Analyzer Agent compares a parsed job posting against a candidate profile using LangGraph and vector retrieval:
+
+```mermaid
+flowchart LR
+    API["POST /analyses"] --> ARQ["enqueue analyze_job"]
+    ARQ --> Redis["Redis Queue"]
+    Worker["ARQ Worker"] --> Redis
+    Worker --> retrieve["retrieve_job_and_profile"]
+    retrieve --> vector["vector_context\n(Qdrant search)"]
+    vector --> prompt["build_prompt\n(job-fit.md v2)"]
+    prompt --> llm["analyze\n(Groq llama-3.1-8b-instant)"]
+    llm --> validate["validate\n(JSON repair)"]
+    validate --> DB["job_analyses table"]
+```
+
+Key design decisions:
+- **Profile is anonymized** before sending to Groq (`agents/profile_digest.py` strips name, email, phone, URLs, GPA). See [ADR 0005](../adr/0005-anonymized-profile-cloud-analysis.md).
+- **Stored in `job_analyses`** table with unique constraint on (job_id, profile_id). Re-running analysis overwrites the previous result.
+- **Stale sweeper** in `main.py` lifespan marks `status="analyzing"` rows older than 10 minutes as failed.
+- **Prompt** in `prompts/analysis/job-fit.md` v2, model `llama-3.1-8b-instant`.
+
+Output schema (`JobAnalysisReport`):
+| Field | Type | Description |
+|-------|------|-------------|
+| matched_skills, missing_skills | list[str] | Direct skill comparison |
+| adjacent_strengths | list[str] | Transferable skills |
+| strengths, weaknesses | list[str] | Qualitative fit assessment |
+| experience_fit | str | Seniority/domain alignment |
+| culture_signals | list[str] | Remote, on-call, team cues |
+| ats_score | int (0-100) | Estimated ATS keyword match |
+| interview_difficulty | str | easy/medium/hard/very-hard |
+| company_summary | str | One-sentence role snapshot |
+| likely_interview_topics | list[str] | Topics to prepare |
+| fit_score | int (0-100) | Composite fit |
+| recommendation | str | apply/apply-with-prep/skip |
 
 ## Data Flow: CV Customization
 
