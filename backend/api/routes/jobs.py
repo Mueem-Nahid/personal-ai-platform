@@ -13,81 +13,54 @@ from schemas.job import (
     ParseTextRequest,
     ParseUrlRequest,
 )
+from services.extraction_service import ExtractionService
 from services.job_service import JobService
+from workers.redis_pool import get_redis
 
 router = APIRouter()
 
 
-@router.post("/parse-url", response_model=JobPostOut, status_code=status.HTTP_201_CREATED)
+@router.post("/parse-url", status_code=status.HTTP_202_ACCEPTED)
 async def parse_from_url(
     body: ParseUrlRequest,
     session: AsyncSession = Depends(get_session),
-) -> JobPostOut:
+) -> dict:
     service = JobService(session)
-    job = await service.parse_from_url(body.url)
-    return JobPostOut(
-        id=job.id,
-        url=job.url,
-        title=job.title,
-        company=job.company,
-        location=job.location,
-        source=job.source,
-        status=job.status,
-        raw_text=job.raw_text,
-        parsed_fields=JobParsedFields(**job.parsed_fields) if job.parsed_fields else None,
-        created_at=job.created_at,
-        updated_at=job.updated_at,
-    )
+    job = await service.create_pending(text=None, url=body.url, source="url")
+    redis = await get_redis()
+    await redis.enqueue_job("parse_url", str(job.id), body.url)
+    return {"job_id": str(job.id), "status": "parsing"}
 
 
-@router.post("/parse-text", response_model=JobPostOut, status_code=status.HTTP_201_CREATED)
+@router.post("/parse-text", status_code=status.HTTP_202_ACCEPTED)
 async def parse_from_text(
     body: ParseTextRequest,
     session: AsyncSession = Depends(get_session),
-) -> JobPostOut:
+) -> dict:
     service = JobService(session)
-    job = await service.parse_from_text(body.text, body.url)
-    return JobPostOut(
-        id=job.id,
-        url=job.url,
-        title=job.title,
-        company=job.company,
-        location=job.location,
-        source=job.source,
-        status=job.status,
-        raw_text=job.raw_text,
-        parsed_fields=JobParsedFields(**job.parsed_fields) if job.parsed_fields else None,
-        created_at=job.created_at,
-        updated_at=job.updated_at,
-    )
+    job = await service.create_pending(text=body.text, url=body.url, source="text")
+    redis = await get_redis()
+    await redis.enqueue_job("parse_text", str(job.id), body.text)
+    return {"job_id": str(job.id), "status": "parsing"}
 
 
-@router.post("/parse-pdf", response_model=JobPostOut, status_code=status.HTTP_201_CREATED)
+@router.post("/parse-pdf", status_code=status.HTTP_202_ACCEPTED)
 async def parse_from_pdf(
     file: UploadFile,
     session: AsyncSession = Depends(get_session),
-) -> JobPostOut:
+) -> dict:
     if not file.filename:
         raise HTTPException(status_code=400, detail="Filename is required")
     ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
     if ext != "pdf":
         raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
     data = await file.read()
+    text = ExtractionService.extract(data, "pdf")
     service = JobService(session)
-    job = await service.parse_from_pdf(data, file.filename)
-    return JobPostOut(
-        id=job.id,
-        url=job.url,
-        title=job.title,
-        company=job.company,
-        location=job.location,
-        source=job.source,
-        status=job.status,
-        raw_text=job.raw_text,
-        parsed_fields=JobParsedFields(**job.parsed_fields) if job.parsed_fields else None,
-        created_at=job.created_at,
-        updated_at=job.updated_at,
-    )
+    job = await service.create_pending(text=text, url=None, source="pdf")
+    redis = await get_redis()
+    await redis.enqueue_job("parse_text", str(job.id), text)
+    return {"job_id": str(job.id), "status": "parsing"}
 
 
 @router.get("/", response_model=JobPostListOut)

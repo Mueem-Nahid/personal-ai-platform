@@ -1,6 +1,6 @@
 # ADR 0003: Default Local LLM — Qwen3 8B
 
-- **Status:** Accepted
+- **Status:** Amended 2026-07-26 — superseded for job-post parsing by [ADR 0004](./0004-cloud-llm-for-parsing.md). Still active for embeddings (`bge-m3` via Ollama), future resume/CV agent tasks, and as fallback when `APP_LLM_PROVIDER=ollama` or no cloud API key is set.
 - **Date:** 2026-07-13
 
 ## Context

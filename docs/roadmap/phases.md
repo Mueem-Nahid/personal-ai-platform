@@ -7,7 +7,7 @@
 | **0** | Project setup | Docker stack + repo scaffolding + stubs | 2 wk |
 | **1** | User profile | Profile CRUD + frontend editor | 2 wk |
 | **2** | Knowledge base | Upload → extract → embed → store pipeline | 3 wk |
-| **3** | Job parser | URL/text/PDF → structured job data | 2 wk |
+| **3** | Job parser | URL/text/PDF → structured job data (ARQ worker, Groq Llama 3.1 8B, provider abstraction) | 2 wk |
 | **4** | Job analysis agent | Match report (gaps, ATS score, fit) | 2 wk |
 | **5** | Resume builder | Tailored resume with versioning | 3 wk |
 | **6** | PDF engine | HTML/LaTeX/Typst/DOCX → PDF | 2 wk |
@@ -44,11 +44,12 @@
 - Pipeline: Extract (Tika/pdfplumber) → Chunk → Embed (bge-m3) → Store (Qdrant)
 - MinIO for raw file storage
 
-### Phase 3 — Job Parser
+### Phase 3 — Job Parser ✅
 - Input: URL (Playwright + BeautifulSoup), pasted text, or PDF
 - Extract: Company, Role, Salary, Requirements, Responsibilities, Skills, Experience, Keywords, Location, Tech Stack
-- spaCy NER + regex + LLM-assisted parsing
-- Store in `Job_Posts` with parsed JSON
+- LLM-assisted parsing via **pluggable provider** (`backend/parsers/llm_provider.py`): default **Groq Llama 3.1 8B** (cloud), with local Ollama fallback
+- Background processing via **ARQ Redis worker** (`backend/workers/arq_worker.py`) — durable, retry-capable, decoupled from HTTP event loop
+- Store in `Job_Posts` with parsed JSON. Stale-job sweeper on startup.
 
 ### Phase 4 — Job Analysis Agent
 - Output: Missing skills, Strengths, Weaknesses, ATS score, Culture fit, Interview difficulty, Company summary, Likely interview topics
@@ -104,8 +105,8 @@
 
 ## Cross-Cutting Concerns
 
-- **Security:** Encrypt sensitive data at rest; bind to localhost; file permissions 600
-- **Offline-only:** No external API calls; all models on-device
+- **Privacy-first (hybrid)** — Job-post text is public data, parsed via cloud LLM (Groq free tier). Resumes, CVs, cover letters, and personal documents use local Ollama by default. See [ADR 0004](../adr/0004-cloud-llm-for-parsing.md).
+- **No telemetry, no paid services** — Groq free tier is free for solo use.
 - **Testing:** Unit tests per module; integration tests via Docker Compose; mock LLMs for CI
 - **Observability:** OpenTelemetry + Prometheus + Grafana (scaffold in Phase 0, enrich per phase)
 - **CI/CD:** GitHub Actions — lint, typecheck, test, build on every PR

@@ -33,6 +33,16 @@ class Settings(BaseSettings):
     ollama_model: str = "qwen3:8b"
     ollama_embed_model: str = "bge-m3"
 
+    llm_provider: str = "groq"
+    llm_model: str = "llama-3.1-8b-instant"
+    llm_timeout_seconds: float = 30.0
+    llm_temperature: float = 0.1
+    llm_max_tokens: int = 1024
+    llm_max_text_chars: int = 6000
+
+    groq_api_key: str | None = None
+    gemini_api_key: str | None = None
+
     minio_endpoint: str = "localhost:9000"
     minio_access_key: str = "minioadmin"
     minio_secret_key: str = "minioadmin"

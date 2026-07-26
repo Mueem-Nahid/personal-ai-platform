@@ -17,6 +17,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -31,6 +35,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   redis:
     image: redis:7-alpine
@@ -44,6 +52,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
   minio:
     image: minio/minio:latest
@@ -62,6 +74,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   ollama:
     image: ollama/ollama:latest
@@ -75,6 +91,12 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+    environment:
+      OLLAMA_CONTEXT_LENGTH: 8192
 
   backend:
     build:
@@ -98,6 +120,12 @@ services:
       APP_OLLAMA_URL: http://ollama:11434
       APP_OLLAMA_MODEL: qwen3:8b
       APP_OLLAMA_EMBED_MODEL: bge-m3
+      APP_LLM_PROVIDER: groq
+      APP_LLM_MODEL: llama-3.1-8b-instant
+      APP_LLM_TIMEOUT_SECONDS: "30"
+      APP_LLM_TEMPERATURE: "0.1"
+      APP_LLM_MAX_TOKENS: "1024"
+      APP_GROQ_API_KEY: ${GROQ_API_KEY}
       APP_MINIO_ENDPOINT: minio:9000
       APP_MINIO_ACCESS_KEY: minioadmin
       APP_MINIO_SECRET_KEY: minioadmin
@@ -108,7 +136,11 @@ services:
       - ./backend:/app
       - ./prompts:/app/prompts
       - ./data:/app/data
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: sh -c "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   frontend:
     build:
@@ -125,6 +157,48 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: ../infrastructure/docker/backend.Dockerfile
+    container_name: career-agent-worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_DEBUG: "true"
+      APP_DATABASE_URL: postgresql+asyncpg://agent:agent_secret@postgres:5432/career_agent
+      APP_REDIS_URL: redis://redis:6379/0
+      APP_QDRANT_URL: http://qdrant:6333
+      APP_OLLAMA_URL: http://ollama:11434
+      APP_OLLAMA_MODEL: qwen3:8b
+      APP_OLLAMA_EMBED_MODEL: bge-m3
+      APP_LLM_PROVIDER: groq
+      APP_LLM_MODEL: llama-3.1-8b-instant
+      APP_LLM_TIMEOUT_SECONDS: "30"
+      APP_LLM_TEMPERATURE: "0.1"
+      APP_LLM_MAX_TOKENS: "1024"
+      APP_GROQ_API_KEY: ${GROQ_API_KEY}
+      APP_MINIO_ENDPOINT: minio:9000
+      APP_MINIO_ACCESS_KEY: minioadmin
+      APP_MINIO_SECRET_KEY: minioadmin
+      APP_PROMPTS_PATH: /app/prompts
+    volumes:
+      - ./backend:/app
+      - ./prompts:/app/prompts
+      - ./data:/app/data
+    command: arq workers.arq_worker.WorkerSettings
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
 volumes:
   pgdata:

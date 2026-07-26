@@ -19,41 +19,44 @@ class JobService:
         self._session = session
         self._repo = JobPostRepository(session)
 
-    async def parse_from_url(self, url: str) -> JobPost:
-        existing = await self._repo.get_by_url(url)
-        if existing:
-            return existing
-
-        job = JobPost(url=url, source="url", status="parsing")
-        job = await self._repo.create(job)
-
-        raw_text = await fetch_url_text(url)
-        job.raw_text = raw_text
-
-        if not raw_text.strip():
-            job.status = "failed"
-            return await self._repo.update(job)
-
-        return await self._complete_parse(job, raw_text)
-
-    async def parse_from_text(self, text: str, url: str | None = None) -> JobPost:
+    async def create_pending(
+        self, text: str | None, url: str | None = None, source: str = "text"
+    ) -> JobPost:
         if url:
             existing = await self._repo.get_by_url(url)
             if existing:
                 return existing
-
-        job = JobPost(url=url, source="text", status="parsing", raw_text=text)
+        job = JobPost(url=url, source=source, status="parsing", raw_text=text)
         job = await self._repo.create(job)
+        await self._session.commit()
+        return job
 
-        return await self._complete_parse(job, text)
+    async def process_url_background(self, job_id: uuid.UUID, url: str) -> None:
+        raw_text = await fetch_url_text(url)
+        await self._complete_parse(job_id, raw_text, url)
+        await self._session.commit()
 
-    async def parse_from_pdf(self, data: bytes, filename: str) -> JobPost:
+    async def process_text_background(self, job_id: uuid.UUID, text: str) -> None:
+        await self._complete_parse(job_id, text, None)
+        await self._session.commit()
+
+    async def process_pdf_background(self, job_id: uuid.UUID, data: bytes) -> None:
         text = ExtractionService.extract(data, "pdf")
-        job = JobPost(source="pdf", status="parsing", raw_text=text)
-        job = await self._repo.create(job)
-        return await self._complete_parse(job, text)
+        await self._complete_parse(job_id, text, None)
+        await self._session.commit()
 
-    async def _complete_parse(self, job: JobPost, raw_text: str) -> JobPost:
+    async def _complete_parse(
+        self, job_id: uuid.UUID, raw_text: str, url: str | None
+    ) -> None:
+        job = await self._repo.get(job_id)
+        if not job:
+            logger.error("JobPost %s not found for background processing", job_id)
+            return
+        if job.url is None and url:
+            job.url = url
+        if job.raw_text is None:
+            job.raw_text = raw_text
+
         try:
             _, fields, status = await parse_job_text(raw_text)
             job.status = status
@@ -62,11 +65,14 @@ class JobService:
                 job.company = fields.company
                 job.location = fields.location
                 job.parsed_fields = fields.model_dump()
-        except Exception:
-            logger.exception("Processing failed for job %s", job.id)
+            else:
+                job.parsed_fields = {"error": "LLM parsing returned no fields"}
+        except Exception as e:
+            logger.exception("Processing failed for job %s", job_id)
             job.status = "failed"
+            job.parsed_fields = {"error": str(e)[:500]}
 
-        return await self._repo.update(job)
+        await self._repo.update(job)
 
     async def get(self, job_id: uuid.UUID) -> JobPost | None:
         return await self._repo.get(job_id)

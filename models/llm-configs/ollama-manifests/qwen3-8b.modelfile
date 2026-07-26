@@ -3,7 +3,7 @@ FROM qwen3:8b
 PARAMETER temperature 0.6
 PARAMETER top_p 0.9
 PARAMETER repeat_penalty 1.1
-PARAMETER num_ctx 32768
+PARAMETER num_ctx 8192
 PARAMETER stop "<|im_end|>"
 
 SYSTEM """You are Career Agent, a precise, truthful career assistant.

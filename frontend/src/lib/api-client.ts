@@ -129,9 +129,9 @@ export const api = {
 
   // Jobs
   parseJobUrl: (url: string) =>
-    request<JobPost>("/jobs/parse-url", { method: "POST", body: JSON.stringify({ url }) }),
+    request<{ job_id: string; status: string }>("/jobs/parse-url", { method: "POST", body: JSON.stringify({ url }) }),
   parseJobText: (text: string, url?: string | null) =>
-    request<JobPost>("/jobs/parse-text", { method: "POST", body: JSON.stringify({ text, url }) }),
+    request<{ job_id: string; status: string }>("/jobs/parse-text", { method: "POST", body: JSON.stringify({ text, url }) }),
   parseJobPdf: async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -140,7 +140,7 @@ export const api = {
       const text = await res.text().catch(() => res.statusText);
       throw new Error(`Parse failed: ${res.status} ${text}`);
     }
-    return res.json() as Promise<JobPost>;
+    return res.json() as Promise<{ job_id: string; status: string }>;
   },
   listJobs: () => request<JobPostListOut>("/jobs"),
   getJob: (id: string) => request<JobPost>(`/jobs/${id}`),

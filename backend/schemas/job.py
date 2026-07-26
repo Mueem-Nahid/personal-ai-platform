@@ -11,6 +11,7 @@ class ORMBase(BaseModel):
 
 
 class JobParsedFields(BaseModel):
+    error: str | None = None
     title: str | None = None
     company: str | None = None
     location: str | None = None
