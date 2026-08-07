@@ -14,6 +14,9 @@ import type {
   DocumentListOut,
   JobPost,
   JobPostListOut,
+  JobAnalysis,
+  JobAnalysisListOut,
+  JobAnalysisTrace,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "/api";
@@ -145,4 +148,23 @@ export const api = {
   listJobs: () => request<JobPostListOut>("/jobs"),
   getJob: (id: string) => request<JobPost>(`/jobs/${id}`),
   deleteJob: (id: string) => request<void>(`/jobs/${id}`, { method: "DELETE" }),
+
+  // Analyses
+  startAnalysis: (jobId: string, profileId: string) =>
+    request<{ analysis_id: string; status: string }>("/analyses", {
+      method: "POST",
+      body: JSON.stringify({ job_id: jobId, profile_id: profileId }),
+    }),
+  getAnalysis: (id: string) => request<JobAnalysis>(`/analyses/${id}`),
+  listAnalyses: (params?: { job_id?: string; profile_id?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.job_id) query.set("job_id", params.job_id);
+    if (params?.profile_id) query.set("profile_id", params.profile_id);
+    const qs = query.toString();
+    return request<JobAnalysisListOut>(`/analyses${qs ? `?${qs}` : ""}`);
+  },
+  deleteAnalysis: (id: string) =>
+    request<void>(`/analyses/${id}`, { method: "DELETE" }),
+  getAnalysisTrace: (id: string) =>
+    request<JobAnalysisTrace>(`/analyses/${id}/trace`),
 };

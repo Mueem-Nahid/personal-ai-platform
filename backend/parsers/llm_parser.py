@@ -1,18 +1,16 @@
 from __future__ import annotations
 
-import json
 import logging
-import re
 from functools import lru_cache
 
 from core.config import settings
 from parsers.llm_provider import complete
 from schemas.job import JobParsedFields
+from utils.json_repair import repair_json
 
 logger = logging.getLogger(__name__)
 
 _PROMPT_PATH = settings.prompts_path / "parsing" / "job-post.md"
-_json_fence = re.compile(r"```(?:json)?\s*\n?(.*?)\n?```", re.DOTALL)
 
 _EXPECTED_FIELDS = frozenset(JobParsedFields.model_fields.keys())
 
@@ -39,7 +37,7 @@ async def llm_parse(text: str) -> JobParsedFields:
         max_tokens=settings.llm_max_tokens,
         temperature=settings.llm_temperature,
     )
-    parsed = _repair_json(raw)
+    parsed = repair_json(raw, expected_fields=_EXPECTED_FIELDS)
 
     return JobParsedFields(
         title=parsed.get("title"),
@@ -54,38 +52,3 @@ async def llm_parse(text: str) -> JobParsedFields:
         keywords=parsed.get("keywords") or [],
         tech_stack=parsed.get("tech_stack") or [],
     )
-
-
-def _repair_json(raw: str) -> dict:
-    m = _json_fence.search(raw)
-    if m:
-        raw = m.group(1).strip()
-
-    parsed = None
-    exceptions: list[Exception] = []
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError as e:
-        exceptions.append(e)
-
-    if parsed is None:
-        start = raw.find("{")
-        end = raw.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            raw = raw[start : end + 1]
-        try:
-            parsed = json.loads(raw)
-        except json.JSONDecodeError as e:
-            exceptions.append(e)
-
-    if parsed is None:
-        msg = "Failed to parse LLM response as JSON"
-        logger.warning("%s:\n%s", msg, raw)
-        raise ValueError(msg) from (exceptions[0] if exceptions else None)
-
-    if not any(k in parsed for k in _EXPECTED_FIELDS):
-        raise ValueError(
-            f"LLM response JSON missing all expected fields; got keys: {list(parsed.keys())}"
-        )
-
-    return parsed

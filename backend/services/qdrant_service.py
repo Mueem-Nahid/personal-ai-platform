@@ -58,13 +58,13 @@ class QdrantService:
         self, embedding: list[float], profile_id: uuid.UUID, limit: int = 5
     ) -> list[dict]:
         await self.ensure_collection()
-        results = await self._client.search(
+        response = await self._client.query_points(
             collection_name=self._collection,
-            query_vector=embedding,
+            query=embedding,
             query_filter=qmodels.Filter(
                 must=[qmodels.FieldCondition(key="profile_id", match=qmodels.MatchValue(value=str(profile_id)))]
             ),
             limit=limit,
             with_payload=True,
         )
-        return [{"id": r.id, "score": r.score, "payload": r.payload} for r in results]
+        return [{"id": p.id, "score": p.score, "payload": p.payload} for p in response.points]
