@@ -11,6 +11,7 @@ from schemas.job_analysis import (
     JobAnalysisListOut,
     JobAnalysisOut,
     JobAnalysisReport,
+    JobAnalysisTrace,
 )
 from services.job_analysis_service import JobAnalysisService
 from workers.redis_pool import get_redis
@@ -71,6 +72,23 @@ async def list_analyses(
             for a in analyses
         ],
         total=len(analyses),
+    )
+
+
+@router.get("/{analysis_id}/trace", response_model=JobAnalysisTrace)
+async def get_analysis_trace(
+    analysis_id: UUID,
+    session: AsyncSession = Depends(get_session),
+) -> JobAnalysisTrace:
+    service = JobAnalysisService(session)
+    analysis = await service.get(analysis_id)
+    if analysis is None:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    return JobAnalysisTrace(
+        analysis_id=analysis.id,
+        prompt_text=analysis.prompt_text,
+        evidence_text=analysis.evidence_text,
+        raw_response=analysis.raw_response,
     )
 
 

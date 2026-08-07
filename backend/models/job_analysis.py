@@ -23,6 +23,9 @@ class JobAnalysis(UUIDMixin, TimestampMixin, Base):
         String(20), nullable=False, default="analyzing"
     )
     report: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    prompt_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    evidence_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    raw_response: Mapped[str | None] = mapped_column(Text, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     provider: Mapped[str | None] = mapped_column(String(20), nullable=True)
     model: Mapped[str | None] = mapped_column(String(100), nullable=True)

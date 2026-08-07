@@ -223,3 +223,10 @@ export interface JobAnalysisListOut {
   analyses: JobAnalysis[];
   total: number;
 }
+
+export interface JobAnalysisTrace {
+  analysis_id: string;
+  prompt_text?: string | null;
+  evidence_text?: string | null;
+  raw_response?: string | null;
+}

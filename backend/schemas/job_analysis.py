@@ -49,3 +49,10 @@ class JobAnalysisListOut(BaseModel):
 class AnalyzeJobRequest(BaseModel):
     job_id: UUID
     profile_id: UUID
+
+
+class JobAnalysisTrace(BaseModel):
+    analysis_id: UUID
+    prompt_text: str | None = None
+    evidence_text: str | None = None
+    raw_response: str | None = None

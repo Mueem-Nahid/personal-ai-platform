@@ -16,6 +16,7 @@ import type {
   JobPostListOut,
   JobAnalysis,
   JobAnalysisListOut,
+  JobAnalysisTrace,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "/api";
@@ -164,4 +165,6 @@ export const api = {
   },
   deleteAnalysis: (id: string) =>
     request<void>(`/analyses/${id}`, { method: "DELETE" }),
+  getAnalysisTrace: (id: string) =>
+    request<JobAnalysisTrace>(`/analyses/${id}/trace`),
 };

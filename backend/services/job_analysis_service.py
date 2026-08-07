@@ -48,7 +48,9 @@ class JobAnalysisService:
                     "raw_job_text": "",
                     "profile_digest": "",
                     "retrieved_chunks": [],
+                    "evidence_text": "",
                     "prompt": "",
+                    "raw_response": "",
                     "report": None,
                     "error": None,
                     "provider": "",
@@ -70,6 +72,9 @@ class JobAnalysisService:
         else:
             analysis.status = "analyzed"
             analysis.report = result.get("report")
+            analysis.prompt_text = result.get("prompt") or None
+            analysis.evidence_text = result.get("evidence_text") or None
+            analysis.raw_response = result.get("raw_response") or None
             analysis.provider = result.get("provider")
             analysis.model = result.get("model")
             analysis.prompt_version = result.get("prompt_version")

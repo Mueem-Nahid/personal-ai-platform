@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import type { JobAnalysis, JobPost, Profile } from "@/lib/types";
+import type { JobAnalysis, JobAnalysisTrace, JobPost, Profile } from "@/lib/types";
 import { api } from "@/lib/api-client";
 import { Badge } from "@/components/atoms/Badge";
 import { Button } from "@/components/atoms/Button";
@@ -27,6 +27,8 @@ export default function JobDetailPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisMessage, setAnalysisMessage] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<JobAnalysis | null>(null);
+  const [trace, setTrace] = useState<JobAnalysisTrace | null>(null);
+  const [traceOpen, setTraceOpen] = useState(false);
 
   useEffect(() => {
     isMounted.current = true;
@@ -102,12 +104,30 @@ export default function JobDetailPage() {
     }
   };
 
+  const handleToggleTrace = async (analysisId: string) => {
+    if (trace) {
+      setTraceOpen(!traceOpen);
+      return;
+    }
+    try {
+      const t = await api.getAnalysisTrace(analysisId);
+      if (isMounted.current) {
+        setTrace(t);
+        setTraceOpen(true);
+      }
+    } catch {
+      // trace fetch failure is non-fatal
+    }
+  };
+
   const handleAnalyze = async () => {
     if (!selectedProfileId) return;
     setAnalyzing(true);
     setAnalysisMessage("Starting analysis...");
     setError(null);
     setAnalysis(null);
+    setTrace(null);
+    setTraceOpen(false);
     try {
       const { analysis_id } = await api.startAnalysis(jobId, selectedProfileId);
       await pollAnalysis(analysis_id);
@@ -182,8 +202,63 @@ export default function JobDetailPage() {
                   </p>
                 )}
               </>
-            )}
-          </div>
+           )}
+          {analysis && analysis.status === "analyzed" && (
+            <details
+              className="rounded-lg border dark:border-gray-700"
+              open={traceOpen}
+              onToggle={async (e) => {
+                if ((e.target as HTMLDetailsElement).open && !trace) {
+                  await handleToggleTrace(analysis.id);
+                } else {
+                  setTraceOpen((e.target as HTMLDetailsElement).open);
+                }
+              }}
+            >
+              <summary className="cursor-pointer p-4 text-sm font-medium opacity-70 hover:opacity-100">
+                Audit Trail — inspect what the LLM saw
+              </summary>
+              <div className="border-t p-4 space-y-4 dark:border-gray-600">
+                {!trace ? (
+                  <p className="text-sm opacity-50">Loading...</p>
+                ) : (
+                  <>
+                    {trace.evidence_text && (
+                      <details>
+                        <summary className="cursor-pointer text-xs font-medium opacity-50 hover:opacity-75">
+                          Retrieved CV Evidence
+                        </summary>
+                        <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded bg-gray-50 p-3 text-xs dark:bg-gray-800">
+                          {trace.evidence_text}
+                        </pre>
+                      </details>
+                    )}
+                    {trace.prompt_text && (
+                      <details>
+                        <summary className="cursor-pointer text-xs font-medium opacity-50 hover:opacity-75">
+                          Full Prompt Sent to LLM
+                        </summary>
+                        <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded bg-gray-50 p-3 text-xs dark:bg-gray-800">
+                          {trace.prompt_text}
+                        </pre>
+                      </details>
+                    )}
+                    {trace.raw_response && (
+                      <details>
+                        <summary className="cursor-pointer text-xs font-medium opacity-50 hover:opacity-75">
+                          Raw LLM Response
+                        </summary>
+                        <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded bg-gray-50 p-3 text-xs dark:bg-gray-800">
+                          {trace.raw_response}
+                        </pre>
+                      </details>
+                    )}
+                  </>
+                )}
+              </div>
+            </details>
+          )}
+        </div>
         </div>
 
         <div className="space-y-4 lg:col-span-2">

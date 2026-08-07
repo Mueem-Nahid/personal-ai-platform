@@ -25,7 +25,9 @@ class AnalysisState(TypedDict):
     raw_job_text: str
     profile_digest: str
     retrieved_chunks: list[str]
+    evidence_text: str
     prompt: str
+    raw_response: str
     report: dict | None
     error: str | None
     provider: str
@@ -150,6 +152,7 @@ async def build_prompt(state: AnalysisState) -> AnalysisState:
     if len(evidence) > evidence_limit:
         evidence = evidence[:evidence_limit] + "\n[evidence truncated for length]"
 
+    state["evidence_text"] = evidence
     state["prompt"] = (
         template.replace("{{ job_description }}", raw_text)
         .replace("{{ candidate_profile }}", digest)
@@ -169,6 +172,7 @@ async def analyze(state: AnalysisState) -> AnalysisState:
             max_tokens=settings.analysis_max_tokens,
             temperature=0.3,
         )
+        state["raw_response"] = raw
         state["report"] = repair_json(raw, _EXPECTED_FIELDS)
         state["provider"] = settings.llm_provider
         state["model"] = settings.llm_model
@@ -192,9 +196,10 @@ async def validate(state: AnalysisState) -> AnalysisState:
         state["error"] = "No report produced; LLM returned no valid data"
         return state
     try:
-        JobAnalysisReport(**state["report"])
+        validated = JobAnalysisReport(**state["report"])
+        state["report"] = validated.model_dump()
     except Exception as e:
-        logger.warning("Report validation warning: %s", e)
+        state["error"] = f"Report validation failed: {e}"
     return state
 
 
