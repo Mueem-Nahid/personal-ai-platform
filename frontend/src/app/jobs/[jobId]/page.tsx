@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import type { JobAnalysis, JobAnalysisTrace, JobPost, Profile } from "@/lib/types";
+import type { JobAnalysis, JobAnalysisTrace, JobPost, MasterResume, Profile, ResumeVersion, ResumeVersionTrace } from "@/lib/types";
 import { api } from "@/lib/api-client";
 import { Badge } from "@/components/atoms/Badge";
 import { Button } from "@/components/atoms/Button";
 import { ErrorBanner } from "@/components/organisms/ErrorBanner";
 import { PageHeader } from "@/components/organisms/PageHeader";
+import { ResumeVersionCard } from "@/components/molecules/ResumeVersionCard";
 
 const POLL_TIMEOUT = 120000;
 const POLL_INTERVAL = 2000;
@@ -29,6 +30,15 @@ export default function JobDetailPage() {
   const [analysis, setAnalysis] = useState<JobAnalysis | null>(null);
   const [trace, setTrace] = useState<JobAnalysisTrace | null>(null);
   const [traceOpen, setTraceOpen] = useState(false);
+
+  const [masterResumes, setMasterResumes] = useState<MasterResume[]>([]);
+  const [selectedMasterId, setSelectedMasterId] = useState<string>("");
+  const [resumeVersions, setResumeVersions] = useState<ResumeVersion[]>([]);
+  const [buildingResume, setBuildingResume] = useState(false);
+  const [resumeMessage, setResumeMessage] = useState<string | null>(null);
+  const [selectedVersion, setSelectedVersion] = useState<ResumeVersion | null>(null);
+  const [versionTrace, setVersionTrace] = useState<ResumeVersionTrace | null>(null);
+  const [versionTraceOpen, setVersionTraceOpen] = useState(false);
 
   useEffect(() => {
     isMounted.current = true;
@@ -74,11 +84,40 @@ export default function JobDetailPage() {
     }
   }, [jobId]);
 
+  const loadResumeData = useCallback(async (profileId: string) => {
+    if (!profileId) return;
+    try {
+      const masters = await api.listMasterResumes(profileId);
+      if (isMounted.current) {
+        setMasterResumes(masters.resumes.filter((r) => r.status === "active"));
+        if (masters.resumes.length > 0) {
+          setSelectedMasterId((prev) => {
+            if (prev) return prev;
+            const def = masters.resumes.find((r) => r.is_default);
+            return def ? def.id : masters.resumes[0].id;
+          });
+        }
+      }
+      const versions = await api.listResumeVersions(profileId, jobId);
+      if (isMounted.current) {
+        setResumeVersions(versions.versions);
+      }
+    } catch {
+      // resume data optional
+    }
+  }, [jobId]);
+
   useEffect(() => {
     loadJob();
     loadProfiles();
     loadExistingAnalysis();
   }, [loadJob, loadProfiles, loadExistingAnalysis]);
+
+  useEffect(() => {
+    if (selectedProfileId) {
+      loadResumeData(selectedProfileId);
+    }
+  }, [selectedProfileId, loadResumeData]);
 
   const pollAnalysis = async (analysisId: string): Promise<void> => {
     const start = Date.now();
@@ -139,6 +178,107 @@ export default function JobDetailPage() {
         setAnalyzing(false);
         setAnalysisMessage(null);
       }
+    }
+  };
+
+  const pollResumeVersion = async (versionId: string): Promise<void> => {
+    const start = Date.now();
+    let attempts = 0;
+    while (isMounted.current) {
+      if (Date.now() - start > POLL_TIMEOUT) {
+        throw new Error("Resume build timed out");
+      }
+      await new Promise((r) => setTimeout(r, POLL_INTERVAL));
+      try {
+        const v = await api.getResumeVersion(versionId);
+        if (v.status !== "building") {
+          if (isMounted.current) {
+            setResumeVersions((prev) => {
+              const idx = prev.findIndex((rv) => rv.id === v.id);
+              if (idx >= 0) {
+                const next = [...prev];
+                next[idx] = v;
+                return next;
+              }
+              return [v, ...prev];
+            });
+            setSelectedVersion(v);
+          }
+          return;
+        }
+        attempts += 1;
+        if (isMounted.current) {
+          setResumeMessage(`Building${".".repeat((attempts % 3) + 1)}`);
+        }
+      } catch (e) {
+        if (isMounted.current) console.warn("Poll attempt failed:", e);
+      }
+    }
+  };
+
+  const handleBuildResume = async () => {
+    if (!selectedProfileId || !selectedMasterId) return;
+    setBuildingResume(true);
+    setResumeMessage("Starting build...");
+    setError(null);
+    try {
+      const { resume_version_id, version_no } = await api.buildResume(
+        selectedProfileId,
+        jobId,
+        selectedMasterId
+      );
+      const pendingVersion: ResumeVersion = {
+        id: resume_version_id,
+        profile_id: selectedProfileId,
+        job_id: jobId,
+        master_resume_id: selectedMasterId,
+        version_no,
+        status: "building",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      setResumeVersions((prev) => [pendingVersion, ...prev]);
+      await pollResumeVersion(resume_version_id);
+      setResumeMessage(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Resume build failed");
+    } finally {
+      if (isMounted.current) {
+        setBuildingResume(false);
+        setResumeMessage(null);
+      }
+    }
+  };
+
+  const handleViewVersion = async (version: ResumeVersion) => {
+    setSelectedVersion(version);
+    setVersionTrace(null);
+    setVersionTraceOpen(false);
+  };
+
+  const handleDeleteVersion = async (versionId: string) => {
+    try {
+      await api.deleteResumeVersion(versionId);
+      setResumeVersions((prev) => prev.filter((v) => v.id !== versionId));
+      if (selectedVersion?.id === versionId) setSelectedVersion(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Delete failed");
+    }
+  };
+
+  const handleVersionTrace = async (versionId: string) => {
+    if (versionTrace) {
+      setVersionTraceOpen(!versionTraceOpen);
+      return;
+    }
+    try {
+      const t = await api.getResumeVersionTrace(versionId);
+      if (isMounted.current) {
+        setVersionTrace(t);
+        setVersionTraceOpen(true);
+      }
+    } catch {
+      // trace fetch failure is non-fatal
     }
   };
 
@@ -258,11 +398,128 @@ export default function JobDetailPage() {
               </div>
             </details>
           )}
+
+          <div className="rounded-lg border p-4 dark:border-gray-700">
+            <h3 className="mb-3 text-sm font-semibold opacity-70">Resume Builder</h3>
+            {profiles.length === 0 ? (
+              <p className="text-sm opacity-50">Create a profile first.</p>
+            ) : masterResumes.length === 0 ? (
+              <p className="text-sm opacity-50">
+                No master resume. Upload one in{" "}
+                <a href="/knowledge" className="underline hover:opacity-75">Knowledge Base</a>{" "}
+                then designate it as master.
+              </p>
+            ) : (
+              <>
+                <select
+                  value={selectedMasterId}
+                  onChange={(e) => setSelectedMasterId(e.target.value)}
+                  className="mb-3 w-full rounded border px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+                  disabled={buildingResume}
+                >
+                  {masterResumes.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      Master Resume{m.is_default ? " (default)" : ""}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleBuildResume}
+                  disabled={buildingResume || !selectedMasterId}
+                  className="w-full"
+                >
+                  {buildingResume ? "Building..." : resumeVersions.length > 0
+                    ? `Build Tailored v${(resumeVersions[0]?.version_no ?? 0) + 1}`
+                    : "Build Tailored Resume"}
+                </Button>
+                {resumeMessage && (
+                  <p className="mt-2 text-sm text-blue-600 dark:text-blue-400">
+                    {resumeMessage}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+
+          {resumeVersions.length > 0 && (
+            <div className="rounded-lg border p-4 dark:border-gray-700">
+              <h3 className="mb-3 text-sm font-semibold opacity-70">Versions</h3>
+              <div className="space-y-2">
+                {resumeVersions.map((v) => (
+                  <ResumeVersionCard
+                    key={v.id}
+                    version={v}
+                    onView={() => handleViewVersion(v)}
+                    onDelete={() => handleDeleteVersion(v.id)}
+                  />
+                ))}
+              </div>
+              {selectedVersion && selectedVersion.status === "built" && (
+                <details
+                  className="mt-4 rounded-lg border dark:border-gray-600"
+                  open={versionTraceOpen}
+                  onToggle={async (e) => {
+                    if ((e.target as HTMLDetailsElement).open && !versionTrace) {
+                      await handleVersionTrace(selectedVersion.id);
+                    } else {
+                      setVersionTraceOpen((e.target as HTMLDetailsElement).open);
+                    }
+                  }}
+                >
+                  <summary className="cursor-pointer p-3 text-xs font-medium opacity-50 hover:opacity-75">
+                    Audit Trail
+                  </summary>
+                  <div className="border-t p-3 space-y-3 dark:border-gray-600">
+                    {!versionTrace ? (
+                      <p className="text-xs opacity-50">Loading...</p>
+                    ) : (
+                      <>
+                        {versionTrace.evidence_text && (
+                          <details>
+                            <summary className="cursor-pointer text-xs font-medium opacity-50 hover:opacity-75">
+                              Retrieved CV Evidence
+                            </summary>
+                            <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-gray-50 p-2 text-xs dark:bg-gray-800">
+                              {versionTrace.evidence_text}
+                            </pre>
+                          </details>
+                        )}
+                        {versionTrace.prompt_text && (
+                          <details>
+                            <summary className="cursor-pointer text-xs font-medium opacity-50 hover:opacity-75">
+                              Full Prompt
+                            </summary>
+                            <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-gray-50 p-2 text-xs dark:bg-gray-800">
+                              {versionTrace.prompt_text}
+                            </pre>
+                          </details>
+                        )}
+                        {versionTrace.raw_response && (
+                          <details>
+                            <summary className="cursor-pointer text-xs font-medium opacity-50 hover:opacity-75">
+                              Raw LLM Response
+                            </summary>
+                            <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-gray-50 p-2 text-xs dark:bg-gray-800">
+                              {versionTrace.raw_response}
+                            </pre>
+                          </details>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </details>
+              )}
+            </div>
+          )}
         </div>
         </div>
 
         <div className="space-y-4 lg:col-span-2">
-          {analysis && analysis.status === "analyzed" && analysis.report ? (
+          {selectedVersion && selectedVersion.status === "built" && selectedVersion.content ? (
+            <ResumeVersionViewer version={selectedVersion} />
+          ) : analysis && analysis.status === "analyzed" && analysis.report ? (
             <AnalysisReportSection analysis={analysis} />
           ) : analysis && analysis.status === "failed" ? (
             <div className="rounded-lg border border-red-200 p-4 dark:border-red-800">
@@ -279,6 +536,18 @@ export default function JobDetailPage() {
               <p className="text-sm opacity-50">
                 Select a profile and click &quot;Analyze Fit&quot; to see how you match this job.
               </p>
+            </div>
+          )}
+          {selectedVersion && selectedVersion.status === "built" && selectedVersion.content_text && (
+            <div className="rounded-lg border p-4 dark:border-gray-700">
+              <details>
+                <summary className="cursor-pointer text-xs font-medium opacity-50 hover:opacity-75">
+                  Plain Text Render
+                </summary>
+                <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap rounded bg-gray-50 p-3 text-sm dark:bg-gray-800">
+                  {selectedVersion.content_text}
+                </pre>
+              </details>
             </div>
           )}
         </div>
@@ -480,6 +749,45 @@ function BulletSection({ title, items }: { title: string; items: string[] }) {
           <li key={i}>{item}</li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function ResumeVersionViewer({ version }: { version: ResumeVersion }) {
+  const content = version.content;
+  if (!content) return null;
+
+  return (
+    <div className="rounded-lg border p-6 dark:border-gray-700 space-y-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold">Tailored Resume</h3>
+          <div className="mt-1 flex items-center gap-2">
+            <Badge variant="gray">v{version.version_no}</Badge>
+            <span className="text-xs opacity-50">
+              via {version.provider} / {version.model} &middot; prompt {version.prompt_version}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {content.summary && (
+        <div>
+          <h4 className="text-sm font-semibold opacity-70">Summary</h4>
+          <p className="mt-1 text-sm leading-relaxed">{content.summary}</p>
+        </div>
+      )}
+
+      {(content.sections?.length ?? 0) > 0 && content.sections!.map((section, i) => (
+        <div key={i}>
+          <h4 className="mb-2 text-sm font-semibold opacity-70">{section.name}</h4>
+          <ul className="list-disc space-y-1 pl-5 text-sm">
+            {section.items.map((item, j) => (
+              <li key={j}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }

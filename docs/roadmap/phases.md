@@ -59,11 +59,14 @@
 - Background processing via ARQ Redis worker with stale-analysis sweeper on startup
 - See [ADR 0005](../adr/0005-anonymized-profile-cloud-analysis.md) for privacy posture
 
-### Phase 5 — Resume Builder
+### Phase 5 — Resume Builder ✅
 - Input: Job + Master Resume → tailored Resume Version
 - Versioning (v1, v2, v3 — never overwrite)
 - LLM rewrites/reorders bullet points via prompts
 - Vector retrieval of matching CV sections
+- LangGraph agent with 5-node pipeline: retrieve → vector_context → build_prompt → tailor → validate
+- Background processing via ARQ Redis worker with stale-build sweeper on startup
+- See [ADR 0006](../adr/0006-resume-builder-llm-choice.md) for LLM provider choice
 
 ### Phase 6 — PDF Engine
 - Import PDF templates, convert, edit, generate

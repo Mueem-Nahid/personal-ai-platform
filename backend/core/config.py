@@ -55,6 +55,12 @@ class Settings(BaseSettings):
 
     prompts_path: Path = Path("../prompts")
 
+    resume_max_master_chars: int = 8000
+    resume_max_evidence_chars: int = 4000
+    resume_max_tokens: int = 1500
+    resume_temperature: float = 0.6
+    resume_top_k: int = 8
+
     encryption_key: str | None = None
 
 
