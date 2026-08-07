@@ -99,31 +99,20 @@ async def vector_context(state: AnalysisState) -> AnalysisState:
             embedding, uuid.UUID(state["profile_id"]), limit=6
         )
 
-        doc_chunk_ids = [
-            uuid.UUID(r["payload"]["document_id"])
+        point_ids = [
+            uuid.UUID(r["id"])
             for r in results
-            if r.get("payload") and r["payload"].get("document_id")
+            if r.get("id")
         ]
-        chunk_indices = [
-            r["payload"].get("chunk_index")
-            for r in results
-            if r.get("payload") and r["payload"].get("chunk_index") is not None
-        ]
-        state["retrieved_chunks"] = await _fetch_chunk_texts(
-            doc_chunk_ids, chunk_indices, uuid.UUID(state["profile_id"])
-        )
+        state["retrieved_chunks"] = await _fetch_chunk_texts(point_ids)
     except Exception:
         logger.exception("Vector context retrieval failed, continuing without evidence")
         state["retrieved_chunks"] = []
     return state
 
 
-async def _fetch_chunk_texts(
-    document_ids: list[uuid.UUID],
-    chunk_indices: list[int],
-    profile_id: uuid.UUID,
-) -> list[str]:
-    if not document_ids:
+async def _fetch_chunk_texts(point_ids: list[uuid.UUID]) -> list[str]:
+    if not point_ids:
         return []
     from sqlalchemy import select
 
@@ -132,9 +121,7 @@ async def _fetch_chunk_texts(
 
     async with SessionLocal() as session:
         stmt = select(DocumentChunk.text_content).where(
-            DocumentChunk.profile_id == profile_id,
-            DocumentChunk.document_id.in_(document_ids),
-            DocumentChunk.chunk_index.in_(chunk_indices),
+            DocumentChunk.qdrant_point_id.in_(point_ids),
         )
         result = await session.execute(stmt)
         return list(result.scalars().all())
@@ -149,14 +136,23 @@ async def build_prompt(state: AnalysisState) -> AnalysisState:
     if len(raw_text) > max_chars:
         raw_text = raw_text[:max_chars]
 
+    digest = state["profile_digest"]
+    digest_limit = settings.analysis_max_profile_chars
+    if len(digest) > digest_limit:
+        digest = digest[:digest_limit] + "\n[profile truncated for length]"
+
     evidence = (
         "\n".join(state["retrieved_chunks"])
         if state["retrieved_chunks"]
         else "No relevant CV sections found."
     )
+    evidence_limit = settings.analysis_max_evidence_chars
+    if len(evidence) > evidence_limit:
+        evidence = evidence[:evidence_limit] + "\n[evidence truncated for length]"
+
     state["prompt"] = (
         template.replace("{{ job_description }}", raw_text)
-        .replace("{{ candidate_profile }}", state["profile_digest"])
+        .replace("{{ candidate_profile }}", digest)
         .replace("{{ retrieved_evidence }}", evidence)
     )
     state["prompt_version"] = "v1"
@@ -170,14 +166,21 @@ async def analyze(state: AnalysisState) -> AnalysisState:
         raw = await complete(
             state["prompt"],
             json_mode=True,
-            max_tokens=2048,
+            max_tokens=settings.analysis_max_tokens,
             temperature=0.3,
         )
         state["report"] = repair_json(raw, _EXPECTED_FIELDS)
         state["provider"] = settings.llm_provider
         state["model"] = settings.llm_model
     except Exception as e:
-        state["error"] = str(e)
+        error_str = str(e)
+        if "413" in error_str or "Payload Too Large" in error_str:
+            state["error"] = (
+                "Analysis prompt too large for Groq free tier (6K tokens/min). "
+                "Try simplifying your profile or reducing uploaded documents."
+            )
+        else:
+            state["error"] = error_str
         logger.exception("LLM analysis call failed")
     return state
 

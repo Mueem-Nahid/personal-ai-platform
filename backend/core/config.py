@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     llm_max_tokens: int = 1024
     llm_max_text_chars: int = 6000
 
+    analysis_max_profile_chars: int = 4000
+    analysis_max_evidence_chars: int = 3000
+    analysis_max_tokens: int = 1024
+
     groq_api_key: str | None = None
     gemini_api_key: str | None = None
 
