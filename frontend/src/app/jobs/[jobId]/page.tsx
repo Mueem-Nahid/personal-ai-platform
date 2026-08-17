@@ -405,9 +405,9 @@ export default function JobDetailPage() {
               <p className="text-sm opacity-50">Create a profile first.</p>
             ) : masterResumes.length === 0 ? (
               <p className="text-sm opacity-50">
-                No master resume. Upload one in{" "}
+                No master resume designated yet. Go to{" "}
                 <a href="/knowledge" className="underline hover:opacity-75">Knowledge Base</a>{" "}
-                then designate it as master.
+                and click &quot;Set as Master Resume&quot; on your uploaded CV.
               </p>
             ) : (
               <>
