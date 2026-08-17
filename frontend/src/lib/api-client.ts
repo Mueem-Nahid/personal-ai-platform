@@ -17,6 +17,11 @@ import type {
   JobAnalysis,
   JobAnalysisListOut,
   JobAnalysisTrace,
+  MasterResume,
+  MasterResumeListOut,
+  ResumeVersion,
+  ResumeVersionListOut,
+  ResumeVersionTrace,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "/api";
@@ -167,4 +172,30 @@ export const api = {
     request<void>(`/analyses/${id}`, { method: "DELETE" }),
   getAnalysisTrace: (id: string) =>
     request<JobAnalysisTrace>(`/analyses/${id}/trace`),
+
+  // Resumes
+  listMasterResumes: (profileId: string) =>
+    request<MasterResumeListOut>(`/resumes/master?profile_id=${profileId}`),
+  designateMasterResume: (profileId: string, documentId: string, isDefault = false) =>
+    request<MasterResume>("/resumes/master", {
+      method: "POST",
+      body: JSON.stringify({ profile_id: profileId, document_id: documentId, is_default: isDefault }),
+    }),
+  deleteMasterResume: (id: string) =>
+    request<void>(`/resumes/master/${id}`, { method: "DELETE" }),
+  buildResume: (profileId: string, jobId: string, masterResumeId?: string) =>
+    request<{ resume_version_id: string; version_no: number; status: string }>("/resumes", {
+      method: "POST",
+      body: JSON.stringify({ profile_id: profileId, job_id: jobId, master_resume_id: masterResumeId ?? null }),
+    }),
+  listResumeVersions: (profileId: string, jobId?: string) => {
+    const query = new URLSearchParams({ profile_id: profileId });
+    if (jobId) query.set("job_id", jobId);
+    return request<ResumeVersionListOut>(`/resumes?${query.toString()}`);
+  },
+  getResumeVersion: (id: string) => request<ResumeVersion>(`/resumes/${id}`),
+  getResumeVersionTrace: (id: string) =>
+    request<ResumeVersionTrace>(`/resumes/${id}/trace`),
+  deleteResumeVersion: (id: string) =>
+    request<void>(`/resumes/${id}`, { method: "DELETE" }),
 };

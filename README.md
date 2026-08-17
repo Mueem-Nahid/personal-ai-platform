@@ -88,7 +88,7 @@ Switch at any time by changing `APP_LLM_PROVIDER` in your `.env` or Docker envir
 
 ## Status
 
-Phase 4 — Job Analysis Agent **complete**. Parse job postings and run fit analysis against candidate profiles using an anonymized digest + cloud LLM (Groq) with ARQ background worker. See `docs/roadmap/phases.md` for the 16-phase plan.
+Phase 5 — Resume Builder **complete**. Tailor resumes to specific jobs with versioning (v1, v2, v3). Vector retrieval of matching CV sections via Qdrant. LangGraph agent rewrites/reorders bullet points. See `docs/roadmap/phases.md` for the 16-phase plan.
 
 ## License
 
