@@ -6,9 +6,10 @@ interface ResumeVersionCardProps {
   version: ResumeVersion;
   onView: () => void;
   onDelete: () => void;
+  onRender?: () => void;
 }
 
-export function ResumeVersionCard({ version, onView, onDelete }: ResumeVersionCardProps) {
+export function ResumeVersionCard({ version, onView, onDelete, onRender }: ResumeVersionCardProps) {
   const statusVariant = version.status === "built" ? "green" : version.status === "failed" ? "red" : "yellow";
 
   return (
@@ -25,9 +26,16 @@ export function ResumeVersionCard({ version, onView, onDelete }: ResumeVersionCa
       </div>
       <div className="flex gap-2">
         {version.status === "built" && (
-          <Button variant="secondary" size="sm" onClick={onView}>
-            View
-          </Button>
+          <>
+            <Button variant="secondary" size="sm" onClick={onView}>
+              View
+            </Button>
+            {onRender && (
+              <Button variant="secondary" size="sm" onClick={onRender}>
+                Render PDF
+              </Button>
+            )}
+          </>
         )}
         <Button variant="ghost" size="sm" onClick={onDelete}>
           Delete

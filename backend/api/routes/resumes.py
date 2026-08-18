@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_session
+from schemas.render import ResumeContentUpdate
 from schemas.resume import (
     BuildResumeRequest,
     MasterResumeCreate,
@@ -76,7 +77,7 @@ async def remove_master_resume(
 async def start_build(
     body: BuildResumeRequest,
     session: AsyncSession = Depends(get_session),
-) -> dict:
+) -> dict[str, str | int]:
     from models.job import JobPost
     from models.profile import Profile
 
@@ -165,6 +166,35 @@ async def get_version(
     version = await service.get(version_id)
     if version is None:
         raise HTTPException(status_code=404, detail="Resume version not found")
+    return ResumeVersionOut(
+        id=version.id,
+        profile_id=version.profile_id,
+        job_id=version.job_id,
+        master_resume_id=version.master_resume_id,
+        version_no=version.version_no,
+        status=version.status,
+        content=ResumeContent(**version.content_json) if version.content_json else None,
+        content_text=version.content_text,
+        error=version.error,
+        provider=version.provider,
+        model=version.model,
+        prompt_version=version.prompt_version,
+        created_at=version.created_at,
+        updated_at=version.updated_at,
+    )
+
+
+@router.put("/{version_id}/content", response_model=ResumeVersionOut)
+async def update_version_content(
+    version_id: UUID,
+    body: ResumeContentUpdate,
+    session: AsyncSession = Depends(get_session),
+) -> ResumeVersionOut:
+    service = ResumeService(session)
+    try:
+        version = await service.update_content(version_id, body.content)
+    except ValueError as err:
+        raise HTTPException(status_code=404, detail=str(err)) from err
     return ResumeVersionOut(
         id=version.id,
         profile_id=version.profile_id,

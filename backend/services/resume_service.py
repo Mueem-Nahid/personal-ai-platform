@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import logging
 import uuid
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.knowledge import Document
 from models.resume import MasterResume, ResumeVersion
 from repositories.resume_repo import MasterResumeRepository, ResumeVersionRepository
+from schemas.resume import ResumeContent
 
 logger = logging.getLogger(__name__)
 
@@ -176,6 +178,31 @@ class ResumeService:
 
     async def get(self, version_id: uuid.UUID) -> ResumeVersion | None:
         return await self._version_repo.get(version_id)
+
+    async def update_content(
+        self, version_id: uuid.UUID, content: ResumeContent | dict[str, Any]
+    ) -> ResumeVersion:
+        version = await self._version_repo.get(version_id)
+        if version is None:
+            raise ValueError(f"ResumeVersion {version_id} not found")
+
+        validated = (
+            content if isinstance(content, ResumeContent) else ResumeContent(**content)
+        )
+        version.content_json = validated.model_dump()
+
+        lines: list[str] = []
+        if validated.summary:
+            lines.append(validated.summary)
+        for section in validated.sections:
+            lines.append(f"\n## {section.name}")
+            for item in section.items:
+                lines.append(f"- {item}")
+        version.content_text = "\n".join(lines)
+
+        version = await self._version_repo.update(version)
+        await self._session.commit()
+        return version
 
     async def list_by_job_and_profile(
         self, profile_id: uuid.UUID, job_id: uuid.UUID

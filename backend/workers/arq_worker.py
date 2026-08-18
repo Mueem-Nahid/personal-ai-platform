@@ -86,8 +86,21 @@ async def build_resume(ctx: dict, version_id: str) -> dict:
     return {"version_id": version_id, "status": "completed", "type": "resume"}
 
 
+async def render_document(ctx: dict, job_id: str) -> dict:
+    import uuid
+
+    from core.database import SessionLocal
+    from services.render_service import RenderService
+
+    async with SessionLocal() as session:
+        service = RenderService(session)
+        await service.run_background(uuid.UUID(job_id))
+        await session.commit()
+    return {"job_id": job_id, "status": "completed", "type": "render"}
+
+
 class WorkerSettings:
-    functions = [parse_url, parse_text, parse_pdf, analyze_job, build_resume]
+    functions = [parse_url, parse_text, parse_pdf, analyze_job, build_resume, render_document]
     on_startup = startup
     on_shutdown = shutdown
     redis_settings = RedisSettings.from_dsn(settings.redis_url)

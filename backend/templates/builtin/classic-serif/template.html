@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ profile.full_name }} — Resume</title>
+</head>
+<body>
+  <header>
+    <h1>{{ profile.full_name }}</h1>
+    {% if profile.title %}<p class="headline">{{ profile.title }}</p>{% endif %}
+    <p class="contact">
+      {%- if profile.email %}{{ profile.email }}{% endif -%}
+      {%- if profile.phone %} &middot; {{ profile.phone }}{% endif -%}
+      {%- if profile.location %} &middot; {{ profile.location }}{% endif -%}
+      {%- if profile.github_url %} &middot; {{ profile.github_url }}{% endif -%}
+      {%- if profile.linkedin_url %} &middot; {{ profile.linkedin_url }}{% endif -%}
+      {%- if profile.website %} &middot; {{ profile.website }}{% endif -%}
+    </p>
+    {% if job.title %}
+    <p class="target">Target: {{ job.title }}{% if job.company %} — {{ job.company }}{% endif %}</p>
+    {% endif %}
+  </header>
+
+  {% if content.summary %}
+  <section>
+    <h2>Summary</h2>
+    <p>{{ content.summary }}</p>
+  </section>
+  {% endif %}
+
+  {% for section in content.sections %}
+  <section>
+    <h2>{{ section.name }}</h2>
+    <ul>
+      {% for item in section.items %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+</body>
+</html>

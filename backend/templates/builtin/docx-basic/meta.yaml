@@ -1,0 +1,4 @@
+key: docx-basic
+name: DOCX Builder
+format: docx
+description: Generates a clean Word document from resume content (no binary template needed).

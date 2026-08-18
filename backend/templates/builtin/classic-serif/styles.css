@@ -1,0 +1,59 @@
+@page {
+  size: A4;
+  margin: 1.8cm 2cm;
+}
+
+body {
+  font-family: "DejaVu Serif", "Liberation Serif", Georgia, serif;
+  font-size: 10.5pt;
+  line-height: 1.45;
+  color: #1a1a1a;
+}
+
+header {
+  text-align: center;
+  border-bottom: 1.5pt solid #333;
+  padding-bottom: 8pt;
+  margin-bottom: 6pt;
+}
+
+h1 {
+  font-size: 19pt;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  margin: 0 0 2pt 0;
+}
+
+.headline {
+  font-style: italic;
+  margin: 0 0 4pt 0;
+  font-size: 11pt;
+}
+
+.contact {
+  font-size: 9.5pt;
+  margin: 0;
+}
+
+.target {
+  font-size: 9.5pt;
+  font-style: italic;
+  margin: 3pt 0 0 0;
+}
+
+h2 {
+  font-size: 12pt;
+  font-variant: small-caps;
+  border-bottom: 0.75pt solid #999;
+  margin: 14pt 0 6pt 0;
+  padding-bottom: 2pt;
+}
+
+ul {
+  margin: 0 0 4pt 0;
+  padding-left: 16pt;
+}
+
+li {
+  margin-bottom: 3pt;
+}

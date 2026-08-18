@@ -11,6 +11,8 @@ from models.profile import (
     Publication,
     Skill,
 )
+from models.rendering import RenderJob, ResumeTemplate
+from models.resume import MasterResume, ResumeVersion
 
 __all__ = [
     "Achievement",
@@ -24,5 +26,9 @@ __all__ = [
     "Profile",
     "Project",
     "Publication",
+    "RenderJob",
+    "ResumeTemplate",
+    "ResumeVersion",
+    "MasterResume",
     "Skill",
 ]

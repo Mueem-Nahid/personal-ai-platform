@@ -1,0 +1,5 @@
+key: ats-plain
+name: ATS Plain
+format: html
+description: Single-column plain formatting optimized for ATS parsing. No colors, no columns.
+is_default: true

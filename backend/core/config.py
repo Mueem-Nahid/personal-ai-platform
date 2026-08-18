@@ -61,6 +61,12 @@ class Settings(BaseSettings):
     resume_temperature: float = 0.6
     resume_top_k: int = 8
 
+    pdf_latex_enabled: bool = False
+    pdf_latex_command: str = "pdflatex"
+    pdf_libreoffice_command: str = "soffice"
+    pdf_render_timeout_seconds: float = 60.0
+    templates_builtin_path: Path = Path("templates/builtin")
+
     encryption_key: str | None = None
 
 
