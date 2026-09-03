@@ -28,10 +28,12 @@ def test_readiness() -> None:
 
 
 def test_llm_health() -> None:
+    from core.config import settings
+
     response = client.get("/api/v1/health/llm")
     assert response.status_code == 200
     body = response.json()
-    assert body["provider"] == "groq"
-    assert body["model"] == "llama-3.1-8b-instant"
+    assert body["provider"] == settings.llm_provider
+    assert body["model"] == settings.llm_model
     assert isinstance(body["groq_key_configured"], bool)
     assert isinstance(body["timeout_seconds"], float)

@@ -54,11 +54,11 @@ flowchart LR
 Configuration via `backend/core/config.py`:
 ```python
 llm_provider: str = "groq"
-llm_model: str = "llama-3.1-8b-instant"
+llm_model: str = "openai/gpt-oss-120b"
 groq_api_key: str | None = None
 llm_timeout_seconds: float = 30.0
 llm_temperature: float = 0.1
-llm_max_tokens: int = 1024
+llm_max_tokens: int = 2048
 llm_max_text_chars: int = 6000
 ```
 
@@ -140,7 +140,7 @@ flowchart LR
     Worker --> retrieve["retrieve_job_and_profile"]
     retrieve --> vector["vector_context\n(Qdrant search)"]
     vector --> prompt["build_prompt\n(job-fit.md v2)"]
-    prompt --> llm["analyze\n(Groq llama-3.1-8b-instant)"]
+    prompt --> llm["analyze\n(Groq gpt-oss-120b)"]
     llm --> validate["validate\n(JSON repair)"]
     validate --> DB["job_analyses table"]
 ```
@@ -149,7 +149,7 @@ Key design decisions:
 - **Profile is anonymized** before sending to Groq (`agents/profile_digest.py` strips name, email, phone, URLs, GPA). See [ADR 0005](../adr/0005-anonymized-profile-cloud-analysis.md).
 - **Stored in `job_analyses`** table with unique constraint on (job_id, profile_id). Re-running analysis overwrites the previous result.
 - **Stale sweeper** in `main.py` lifespan marks `status="analyzing"` rows older than 10 minutes as failed.
-- **Prompt** in `prompts/analysis/job-fit.md` v2, model `llama-3.1-8b-instant`.
+- **Prompt** in `prompts/analysis/job-fit.md` v2, model `openai/gpt-oss-120b` (reasoning: `effort=low`, `format=parsed` in `llm_provider.py`).
 
 Output schema (`JobAnalysisReport`):
 | Field | Type | Description |

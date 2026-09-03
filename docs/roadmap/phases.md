@@ -7,10 +7,10 @@
 | **0** | Project setup | Docker stack + repo scaffolding + stubs | 2 wk |
 | **1** | User profile | Profile CRUD + frontend editor | 2 wk |
 | **2** | Knowledge base | Upload → extract → embed → store pipeline | 3 wk |
-| **3** | Job parser | URL/text/PDF → structured job data (ARQ worker, Groq Llama 3.1 8B, provider abstraction) | 2 wk |
+| **3** | Job parser | URL/text/PDF → structured job data (ARQ worker, Groq cloud LLM via provider abstraction, now `gpt-oss-120b`) | 2 wk |
 | **4** | Job analysis agent | Match report (gaps, ATS score, fit) ✅ | 2 wk |
 | **5** | Resume builder | Tailored resume with versioning | 3 wk |
-| **6** | PDF engine | HTML/LaTeX/Typst/DOCX → PDF | 2 wk |
+| **6** | PDF engine | HTML/LaTeX/Typst/DOCX → PDF ✅ | 2 wk |
 | **7** | ATS optimizer | Score + suggestions | 2 wk |
 | **8** | Cover letter agent | Company/role-specific letters | 1 wk |
 | **9** | Interview agent | Q generation + mock interview + feedback | 3 wk |
@@ -59,15 +59,24 @@
 - Background processing via ARQ Redis worker with stale-analysis sweeper on startup
 - See [ADR 0005](../adr/0005-anonymized-profile-cloud-analysis.md) for privacy posture
 
-### Phase 5 — Resume Builder
+### Phase 5 — Resume Builder ✅
 - Input: Job + Master Resume → tailored Resume Version
 - Versioning (v1, v2, v3 — never overwrite)
 - LLM rewrites/reorders bullet points via prompts
 - Vector retrieval of matching CV sections
+- LangGraph agent with 5-node pipeline: retrieve → vector_context → build_prompt → tailor → validate
+- Background processing via ARQ Redis worker with stale-build sweeper on startup
+- See [ADR 0006](../adr/0006-resume-builder-llm-choice.md) for LLM provider choice
 
-### Phase 6 — PDF Engine
+### Phase 6 — PDF Engine ✅
 - Import PDF templates, convert, edit, generate
 - Support: HTML (Jinja2 + WeasyPrint), LaTeX, Typst, DOCX, PDF
+- Renderer registry (`backend/renderers/`) with capability matrix: HTML→PDF (WeasyPrint), Typst→PDF (typst pip package), DOCX→DOCX/PDF (python-docx + LibreOffice headless), LaTeX→PDF (pdflatex, stubbed behind `APP_PDF_LATEX_ENABLED`)
+- Resume templates (built-in + user, `resume_templates` table) with sandboxed Jinja2 rendering; built-ins seeded at startup
+- Render pipeline as ARQ jobs (`render_jobs`): content snapshot → renderer → MinIO (`renders/`) → download endpoint
+- PDF import: pdfplumber + layout heuristics → editable `ResumeContent` (`POST /templates/import-pdf`)
+- Frontend: `/templates` page (gallery, code editor, live PDF preview, PDF import), render/download dialog + resume content editor on job detail page
+- See [ADR 0007](../adr/0007-pdf-engine-renderer-choices.md)
 
 ### Phase 7 — ATS Optimizer
 - Checks: Keyword match, Action verbs, Length, Formatting, Quantified achievements, Missing skills, Readability

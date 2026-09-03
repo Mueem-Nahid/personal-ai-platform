@@ -230,3 +230,121 @@ export interface JobAnalysisTrace {
   evidence_text?: string | null;
   raw_response?: string | null;
 }
+
+export interface MasterResume {
+  id: string;
+  profile_id: string;
+  document_id: string;
+  status: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MasterResumeListOut {
+  resumes: MasterResume[];
+  total: number;
+}
+
+export interface ResumeSection {
+  name: string;
+  items: string[];
+}
+
+export interface ResumeContent {
+  summary?: string | null;
+  sections?: ResumeSection[];
+}
+
+export interface ResumeVersion {
+  id: string;
+  profile_id: string;
+  job_id: string;
+  master_resume_id: string;
+  version_no: number;
+  status: string;
+  content?: ResumeContent | null;
+  content_text?: string | null;
+  error?: string | null;
+  provider?: string | null;
+  model?: string | null;
+  prompt_version?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ResumeVersionListOut {
+  versions: ResumeVersion[];
+  total: number;
+}
+
+export interface ResumeVersionTrace {
+  version_id: string;
+  prompt_text?: string | null;
+  evidence_text?: string | null;
+  raw_response?: string | null;
+}
+
+export type TemplateFormat = "html" | "typst" | "latex" | "docx";
+export type OutputFormat = "pdf" | "docx";
+
+export interface ResumeTemplate {
+  id: string;
+  profile_id?: string | null;
+  builtin_key?: string | null;
+  name: string;
+  description?: string | null;
+  format: TemplateFormat;
+  source_text?: string | null;
+  styles_text?: string | null;
+  asset_key?: string | null;
+  is_default: boolean;
+  status: string;
+  is_builtin: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ResumeTemplateListOut {
+  templates: ResumeTemplate[];
+  total: number;
+}
+
+export interface RenderFormatCapability {
+  format: string;
+  engine: string;
+  output: string;
+  available: boolean;
+  reason?: string | null;
+}
+
+export interface RenderFormatsOut {
+  formats: RenderFormatCapability[];
+}
+
+export interface RenderJob {
+  id: string;
+  profile_id: string;
+  template_id?: string | null;
+  resume_version_id?: string | null;
+  output_format: string;
+  engine?: string | null;
+  status: string;
+  filename?: string | null;
+  file_size_bytes?: number | null;
+  error?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RenderJobListOut {
+  jobs: RenderJob[];
+  total: number;
+}
+
+export interface PdfImportResult {
+  content: ResumeContent;
+  name?: string | null;
+  title?: string | null;
+  contact?: string | null;
+}
