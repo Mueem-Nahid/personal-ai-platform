@@ -7,7 +7,7 @@
 | **0** | Project setup | Docker stack + repo scaffolding + stubs | 2 wk |
 | **1** | User profile | Profile CRUD + frontend editor | 2 wk |
 | **2** | Knowledge base | Upload → extract → embed → store pipeline | 3 wk |
-| **3** | Job parser | URL/text/PDF → structured job data (ARQ worker, Groq Llama 3.1 8B, provider abstraction) | 2 wk |
+| **3** | Job parser | URL/text/PDF → structured job data (ARQ worker, Groq cloud LLM via provider abstraction, now `gpt-oss-120b`) | 2 wk |
 | **4** | Job analysis agent | Match report (gaps, ATS score, fit) ✅ | 2 wk |
 | **5** | Resume builder | Tailored resume with versioning | 3 wk |
 | **6** | PDF engine | HTML/LaTeX/Typst/DOCX → PDF ✅ | 2 wk |

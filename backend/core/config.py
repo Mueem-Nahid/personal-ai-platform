@@ -34,15 +34,15 @@ class Settings(BaseSettings):
     ollama_embed_model: str = "bge-m3"
 
     llm_provider: str = "groq"
-    llm_model: str = "llama-3.1-8b-instant"
+    llm_model: str = "openai/gpt-oss-120b"
     llm_timeout_seconds: float = 30.0
     llm_temperature: float = 0.1
-    llm_max_tokens: int = 1024
+    llm_max_tokens: int = 2048
     llm_max_text_chars: int = 6000
 
     analysis_max_profile_chars: int = 4000
     analysis_max_evidence_chars: int = 3000
-    analysis_max_tokens: int = 1024
+    analysis_max_tokens: int = 2048
 
     groq_api_key: str | None = None
     gemini_api_key: str | None = None
@@ -57,7 +57,7 @@ class Settings(BaseSettings):
 
     resume_max_master_chars: int = 8000
     resume_max_evidence_chars: int = 4000
-    resume_max_tokens: int = 1500
+    resume_max_tokens: int = 3072
     resume_temperature: float = 0.6
     resume_top_k: int = 8
 
