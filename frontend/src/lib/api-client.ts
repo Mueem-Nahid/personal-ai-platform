@@ -19,9 +19,18 @@ import type {
   JobAnalysisTrace,
   MasterResume,
   MasterResumeListOut,
+  ResumeContent,
   ResumeVersion,
   ResumeVersionListOut,
   ResumeVersionTrace,
+  ResumeTemplate,
+  ResumeTemplateListOut,
+  TemplateFormat,
+  OutputFormat,
+  RenderFormatsOut,
+  RenderJob,
+  RenderJobListOut,
+  PdfImportResult,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "/api";
@@ -198,4 +207,67 @@ export const api = {
     request<ResumeVersionTrace>(`/resumes/${id}/trace`),
   deleteResumeVersion: (id: string) =>
     request<void>(`/resumes/${id}`, { method: "DELETE" }),
+  updateResumeContent: (id: string, content: ResumeContent) =>
+    request<ResumeVersion>(`/resumes/${id}/content`, {
+      method: "PUT",
+      body: JSON.stringify({ content }),
+    }),
+
+  // Templates & renders
+  listTemplates: (profileId?: string) => {
+    const query = profileId ? `?profile_id=${profileId}` : "";
+    return request<ResumeTemplateListOut>(`/templates${query}`);
+  },
+  getTemplate: (id: string) => request<ResumeTemplate>(`/templates/${id}`),
+  createTemplate: (data: { profile_id?: string | null; name: string; format: TemplateFormat; description?: string | null; source_text?: string | null; styles_text?: string | null }) =>
+    request<ResumeTemplate>("/templates", { method: "POST", body: JSON.stringify(data) }),
+  updateTemplate: (id: string, data: { name?: string; description?: string | null; source_text?: string | null; styles_text?: string | null }) =>
+    request<ResumeTemplate>(`/templates/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteTemplate: (id: string) => request<void>(`/templates/${id}`, { method: "DELETE" }),
+  setDefaultTemplate: (id: string, profileId?: string) => {
+    const query = profileId ? `?profile_id=${profileId}` : "";
+    return request<ResumeTemplate>(`/templates/${id}/default${query}`, { method: "POST" });
+  },
+  getRenderFormats: () => request<RenderFormatsOut>("/templates/formats"),
+  previewTemplate: async (data: { profile_id?: string | null; format: TemplateFormat; source_text: string; styles_text?: string | null }) => {
+    const res = await fetch(`${BASE}/templates/preview`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => res.statusText);
+      throw new Error(`Preview failed: ${res.status} ${text}`);
+    }
+    return res.blob() as Promise<Blob>;
+  },
+  startRender: (data: { profile_id: string; template_id: string; output_format: OutputFormat; resume_version_id?: string | null; content?: ResumeContent }) =>
+    request<{ render_job_id: string; status: string }>("/renders", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  getRenderJob: (id: string) => request<RenderJob>(`/renders/${id}`),
+  listRenderJobs: (profileId: string, limit = 20) =>
+    request<RenderJobListOut>(`/renders?profile_id=${profileId}&limit=${limit}`),
+  deleteRenderJob: (id: string) => request<void>(`/renders/${id}`, { method: "DELETE" }),
+  downloadRenderJob: async (id: string): Promise<{ blob: Blob; filename: string | null }> => {
+    const res = await fetch(`${BASE}/renders/${id}/download`);
+    if (!res.ok) {
+      const text = await res.text().catch(() => res.statusText);
+      throw new Error(`Download failed: ${res.status} ${text}`);
+    }
+    const disposition = res.headers.get("Content-Disposition") ?? "";
+    const match = disposition.match(/filename="?([^";]+)"?/);
+    return { blob: await res.blob(), filename: match?.[1] ?? null };
+  },
+  importResumePdf: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${BASE}/templates/import-pdf`, { method: "POST", body: formData });
+    if (!res.ok) {
+      const text = await res.text().catch(() => res.statusText);
+      throw new Error(`Import failed: ${res.status} ${text}`);
+    }
+    return res.json() as Promise<PdfImportResult>;
+  },
 };

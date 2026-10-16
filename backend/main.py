@@ -14,7 +14,9 @@ from api.routes.jobs import router as jobs_router
 from api.routes.knowledge import router as knowledge_router
 from api.routes.profile_entities import router as profile_entities_router
 from api.routes.profiles import router as profiles_router
+from api.routes.renders import router as renders_router
 from api.routes.resumes import router as resumes_router
+from api.routes.templates import router as templates_router
 from core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -28,6 +30,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await _sweep_stale_parsing_jobs()
     await _sweep_stale_analyses()
     await _sweep_stale_resume_builds()
+    await _sweep_stale_renders()
+    await _seed_builtin_templates()
     try:
         yield
     finally:
@@ -147,6 +151,53 @@ async def _sweep_stale_resume_builds() -> None:
         )
 
 
+async def _sweep_stale_renders() -> None:
+    try:
+        from datetime import datetime, timedelta
+
+        from sqlalchemy import update
+
+        from core.database import SessionLocal
+        from models.rendering import RenderJob
+
+        now = datetime.now(UTC)
+        stale_cutoff = now - timedelta(minutes=10)
+
+        async with SessionLocal() as session:
+            result = await session.execute(
+                update(RenderJob)
+                .where(
+                    RenderJob.status.in_(["queued", "rendering"]),
+                    RenderJob.updated_at < stale_cutoff,
+                )
+                .values(
+                    status="failed",
+                    error="Stranded render — backend restarted while render was pending",
+                    updated_at=now,
+                )
+            )
+            if result.rowcount:
+                logger.info("Marked %d stale render jobs as failed", result.rowcount)
+
+            await session.commit()
+    except Exception:
+        logger.warning(
+            "Render stale-job sweeper skipped (migration 0007 may not be applied yet)"
+        )
+
+
+async def _seed_builtin_templates() -> None:
+    try:
+        from core.database import SessionLocal
+        from services.template_service import TemplateService
+
+        async with SessionLocal() as session:
+            service = TemplateService(session)
+            await service.seed_builtins()
+    except Exception:
+        logger.warning("Built-in template seeding skipped (database unavailable or unmigrated)")
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
@@ -192,6 +243,16 @@ def create_app() -> FastAPI:
         resumes_router,
         prefix=f"{settings.api_v1_prefix}/resumes",
         tags=["resumes"],
+    )
+    app.include_router(
+        templates_router,
+        prefix=f"{settings.api_v1_prefix}/templates",
+        tags=["templates"],
+    )
+    app.include_router(
+        renders_router,
+        prefix=f"{settings.api_v1_prefix}/renders",
+        tags=["renders"],
     )
     return app
 

@@ -1,7 +1,7 @@
 ---
 name: analysis-job-fit
 version: 2
-model: llama-3.1-8b-instant
+model: openai/gpt-oss-120b
 variables:
   - job_description
   - candidate_profile

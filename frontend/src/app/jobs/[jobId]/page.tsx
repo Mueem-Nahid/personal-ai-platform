@@ -9,6 +9,8 @@ import { Button } from "@/components/atoms/Button";
 import { ErrorBanner } from "@/components/organisms/ErrorBanner";
 import { PageHeader } from "@/components/organisms/PageHeader";
 import { ResumeVersionCard } from "@/components/molecules/ResumeVersionCard";
+import { RenderResumeDialog } from "@/components/organisms/RenderResumeDialog";
+import { ResumeContentEditor } from "@/components/organisms/ResumeContentEditor";
 
 const POLL_TIMEOUT = 120000;
 const POLL_INTERVAL = 2000;
@@ -39,6 +41,8 @@ export default function JobDetailPage() {
   const [selectedVersion, setSelectedVersion] = useState<ResumeVersion | null>(null);
   const [versionTrace, setVersionTrace] = useState<ResumeVersionTrace | null>(null);
   const [versionTraceOpen, setVersionTraceOpen] = useState(false);
+  const [renderVersionId, setRenderVersionId] = useState<string | null>(null);
+  const [editingVersion, setEditingVersion] = useState(false);
 
   useEffect(() => {
     isMounted.current = true;
@@ -254,6 +258,15 @@ export default function JobDetailPage() {
     setSelectedVersion(version);
     setVersionTrace(null);
     setVersionTraceOpen(false);
+    setEditingVersion(false);
+  };
+
+  const handleUpdateVersionContent = async (content: ResumeVersion["content"]) => {
+    if (!selectedVersion) return;
+    const updated = await api.updateResumeContent(selectedVersion.id, content!);
+    setResumeVersions((prev) => prev.map((v) => (v.id === updated.id ? updated : v)));
+    setSelectedVersion(updated);
+    setEditingVersion(false);
   };
 
   const handleDeleteVersion = async (versionId: string) => {
@@ -453,6 +466,7 @@ export default function JobDetailPage() {
                     version={v}
                     onView={() => handleViewVersion(v)}
                     onDelete={() => handleDeleteVersion(v.id)}
+                    onRender={selectedProfileId ? () => setRenderVersionId(v.id) : undefined}
                   />
                 ))}
               </div>
@@ -518,7 +532,22 @@ export default function JobDetailPage() {
 
         <div className="space-y-4 lg:col-span-2">
           {selectedVersion && selectedVersion.status === "built" && selectedVersion.content ? (
-            <ResumeVersionViewer version={selectedVersion} />
+            editingVersion ? (
+              <div className="rounded-lg border p-6 dark:border-gray-700">
+                <h3 className="mb-4 text-lg font-semibold">Edit Resume v{selectedVersion.version_no}</h3>
+                <ResumeContentEditor
+                  initial={selectedVersion.content}
+                  onSave={handleUpdateVersionContent}
+                  onCancel={() => setEditingVersion(false)}
+                />
+              </div>
+            ) : (
+              <ResumeVersionViewer
+                version={selectedVersion}
+                onEdit={() => setEditingVersion(true)}
+                onRender={selectedProfileId ? () => setRenderVersionId(selectedVersion.id) : undefined}
+              />
+            )
           ) : analysis && analysis.status === "analyzed" && analysis.report ? (
             <AnalysisReportSection analysis={analysis} />
           ) : analysis && analysis.status === "failed" ? (
@@ -552,6 +581,14 @@ export default function JobDetailPage() {
           )}
         </div>
       </div>
+
+      {renderVersionId && selectedProfileId && (
+        <RenderResumeDialog
+          profileId={selectedProfileId}
+          resumeVersionId={renderVersionId}
+          onClose={() => setRenderVersionId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -753,7 +790,15 @@ function BulletSection({ title, items }: { title: string; items: string[] }) {
   );
 }
 
-function ResumeVersionViewer({ version }: { version: ResumeVersion }) {
+function ResumeVersionViewer({
+  version,
+  onEdit,
+  onRender,
+}: {
+  version: ResumeVersion;
+  onEdit?: () => void;
+  onRender?: () => void;
+}) {
   const content = version.content;
   if (!content) return null;
 
@@ -768,6 +813,18 @@ function ResumeVersionViewer({ version }: { version: ResumeVersion }) {
               via {version.provider} / {version.model} &middot; prompt {version.prompt_version}
             </span>
           </div>
+        </div>
+        <div className="flex gap-2">
+          {onRender && (
+            <Button variant="secondary" size="sm" onClick={onRender}>
+              Render PDF
+            </Button>
+          )}
+          {onEdit && (
+            <Button variant="ghost" size="sm" onClick={onEdit}>
+              Edit
+            </Button>
+          )}
         </div>
       </div>
 

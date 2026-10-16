@@ -1,8 +1,19 @@
-# ADR 0004: Cloud LLM for Job-Post Parsing (Groq Llama 3.1 8B)
+# ADR 0004: Cloud LLM for Job-Post Parsing (Groq)
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-08-18 — model migrated, see below)
 - **Date:** 2026-07-26
 - **Supersedes:** ADR 0003 *for the job-post parsing use case* (0003 remains active for embeddings and heavier agent tasks later).
+
+> **Amendment (2026-08-18):** Groq decommissioned `llama-3.1-8b-instant` on 2026-08-16 —
+> the provider risk called out below materialized after ~3 weeks. The platform migrated to
+> **`openai/gpt-oss-120b`** (Groq's recommended replacement; `openai/gpt-oss-20b` also verified
+> available). Because this is a reasoning model, `llm_provider.py` now sends
+> `reasoning_effort: "low"` + `reasoning_format: "parsed"` for gpt-oss models (keeps reasoning
+> tokens out of `content` and the token budget), and defensively strips Harmony-channel /
+> `<think>` leakage before JSON repair. Token budgets were raised (`llm_max_tokens` 1024→2048,
+> `analysis_max_tokens` 1024→2048, `resume_max_tokens` 1500→3072) since reasoning tokens count
+> toward completion on Groq. Verified live: clean JSON, ~1 s probe latency. Migration was a
+> one-env-var change plus the reasoning-model handling — as this ADR predicted.
 
 ## Context
 
@@ -24,7 +35,7 @@ The general LLM invocation path is abstracted behind a provider plug (`backend/p
 
 | Provider | Model | Uses | Privacy posture |
 |---|---|---|---|
-| `groq` (default) | `llama-3.1-8b-instant` | Job-post parsing | Public job text |
+| `groq` (default) | `openai/gpt-oss-120b` *(was `llama-3.1-8b-instant`, decommissioned 2026-08-16)* | Job-post parsing, analysis, resume tailoring | Public job text; anonymized profile (ADR 0005) |
 | `ollama` (fallback) | `qwen3:8b` | Embeddings (`bge-m3`), future resume/CV agents | Personal data |
 | `gemini` (stub) | — | Unimplemented, reserved | — |
 
@@ -32,7 +43,7 @@ All configuration is in `backend/core/config.py`:
 
 ```python
 llm_provider: str = "groq"
-llm_model: str = "llama-3.1-8b-instant"
+llm_model: str = "openai/gpt-oss-120b"
 groq_api_key: str | None = None
 ```
 

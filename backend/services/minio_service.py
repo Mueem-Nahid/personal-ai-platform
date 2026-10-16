@@ -26,9 +26,15 @@ class MinioService:
             self._client.make_bucket(settings.minio_bucket)
         self._bucket_ensured = True
 
-    def upload(self, data: bytes, filename: str, content_type: str = "application/octet-stream") -> str:
+    def upload(
+        self,
+        data: bytes,
+        filename: str,
+        content_type: str = "application/octet-stream",
+        prefix: str = "knowledge",
+    ) -> str:
         self._ensure_bucket()
-        object_key = f"knowledge/{uuid.uuid4()}/{filename}"
+        object_key = f"{prefix}/{uuid.uuid4()}/{filename}"
         self._client.put_object(
             settings.minio_bucket,
             object_key,

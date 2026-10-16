@@ -37,7 +37,7 @@ Next.js Dashboard  →  FastAPI Gateway  →  ARQ Worker (Redis)  →  Groq LLM 
               PostgreSQL (pgvector) · Qdrant · MinIO · Ollama (embeddings only)
 ```
 
-All parsing is dispatched to a Redis-backed ARQ worker process, decoupled from the HTTP server. Parsing uses **Groq's Llama 3.1 8B** (free tier, ~500 tok/s). Embeddings use local **Ollama bge-m3**. See [ADR 0004](docs/adr/0004-cloud-llm-for-parsing.md) for the cloud LLM decision.
+All parsing is dispatched to a Redis-backed ARQ worker process, decoupled from the HTTP server. Parsing uses **Groq's gpt-oss-120b** (free tier, reasoning configured `low`/`parsed`). Embeddings use local **Ollama bge-m3**. See [ADR 0004](docs/adr/0004-cloud-llm-for-parsing.md) for the cloud LLM decision.
 
 ## Structure
 
@@ -80,7 +80,7 @@ The platform abstracts LLM calls behind a provider plug (`backend/parsers/llm_pr
 
 | Provider | Default for | Model | Requires |
 |---|---|---|---|
-| `groq` | Job parsing | `llama-3.1-8b-instant` | `APP_GROQ_API_KEY` |
+| `groq` | Job parsing, analysis, resume tailoring | `openai/gpt-oss-120b` | `APP_GROQ_API_KEY` |
 | `ollama` | Embeddings, future agents | `qwen3:8b` / `bge-m3` | Docker ollama container |
 | `gemini` | (stub — not yet implemented) | — | `APP_GEMINI_API_KEY` |
 
