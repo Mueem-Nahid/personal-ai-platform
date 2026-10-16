@@ -58,7 +58,7 @@ services:
           memory: 128M
 
   minio:
-    image: minio/minio:latest
+    image: cgr.dev/chainguard/minio:latest
     container_name: career-agent-minio
     command: server /data --console-address ":9001"
     environment:
