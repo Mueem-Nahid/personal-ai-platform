@@ -68,3 +68,29 @@ class QdrantService:
             with_payload=True,
         )
         return [{"id": p.id, "score": p.score, "payload": p.payload} for p in response.points]
+
+    async def search_in_document(
+        self,
+        embedding: list[float],
+        profile_id: uuid.UUID,
+        document_id: uuid.UUID,
+        limit: int = 8,
+    ) -> list[dict]:
+        await self.ensure_collection()
+        response = await self._client.query_points(
+            collection_name=self._collection,
+            query=embedding,
+            query_filter=qmodels.Filter(
+                must=[
+                    qmodels.FieldCondition(
+                        key="profile_id", match=qmodels.MatchValue(value=str(profile_id))
+                    ),
+                    qmodels.FieldCondition(
+                        key="document_id", match=qmodels.MatchValue(value=str(document_id))
+                    ),
+                ]
+            ),
+            limit=limit,
+            with_payload=True,
+        )
+        return [{"id": p.id, "score": p.score, "payload": p.payload} for p in response.points]

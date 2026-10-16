@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { DocumentOut } from "@/lib/types";
+import type { DocumentOut, MasterResume } from "@/lib/types";
 import { api } from "@/lib/api-client";
 import { Button } from "@/components/atoms/Button";
 import { DocumentCard } from "@/components/molecules/DocumentCard";
@@ -14,6 +14,7 @@ interface KnowledgeBaseProps {
 
 export function KnowledgeBase({ profileId }: KnowledgeBaseProps) {
   const [documents, setDocuments] = useState<DocumentOut[]>([]);
+  const [masterResumes, setMasterResumes] = useState<MasterResume[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -23,8 +24,12 @@ export function KnowledgeBase({ profileId }: KnowledgeBaseProps) {
   const loadDocuments = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.listDocuments(profileId);
-      setDocuments(response.documents);
+      const [docsResp, mastersResp] = await Promise.all([
+        api.listDocuments(profileId),
+        api.listMasterResumes(profileId),
+      ]);
+      setDocuments(docsResp.documents);
+      setMasterResumes(mastersResp.resumes);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load documents");
     } finally {
@@ -35,6 +40,10 @@ export function KnowledgeBase({ profileId }: KnowledgeBaseProps) {
   useEffect(() => {
     loadDocuments();
   }, [loadDocuments]);
+
+  const masterByDocId = new Map<string, MasterResume>(
+    masterResumes.map((m) => [m.document_id, m])
+  );
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -69,6 +78,15 @@ export function KnowledgeBase({ profileId }: KnowledgeBaseProps) {
     }
   };
 
+  const handleDesignateMaster = async (documentId: string) => {
+    try {
+      await api.designateMasterResume(profileId, documentId, true);
+      await loadDocuments();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to set as master resume");
+    }
+  };
+
   return (
     <div className="space-y-4">
       <ErrorBanner error={error} onDismiss={() => setError(null)} />
@@ -99,9 +117,20 @@ export function KnowledgeBase({ profileId }: KnowledgeBaseProps) {
       {loading && <p className="text-sm opacity-50">Loading documents...</p>}
 
       <div className="space-y-2">
-        {documents.map((doc) => (
-          <DocumentCard key={doc.id} document={doc} onDelete={handleDelete} onView={handleView} />
-        ))}
+        {documents.map((doc) => {
+          const master = masterByDocId.get(doc.id);
+          return (
+            <DocumentCard
+              key={doc.id}
+              document={doc}
+              onDelete={handleDelete}
+              onView={handleView}
+              isMasterResume={!!master && master.status === "active"}
+              isDefaultMaster={!!master && master.is_default}
+              onDesignateMaster={() => handleDesignateMaster(doc.id)}
+            />
+          );
+        })}
         {!loading && documents.length === 0 && (
           <p className="text-sm opacity-50">
             No documents yet. Upload a CV, certificate, or project document to build your knowledge base.

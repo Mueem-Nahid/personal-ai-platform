@@ -20,9 +20,20 @@ interface DocumentCardProps {
   document: DocumentOut;
   onDelete: (id: string) => void;
   onView: (id: string) => void;
+  isMasterResume?: boolean;
+  isDefaultMaster?: boolean;
+  onDesignateMaster?: () => void;
 }
 
-export function DocumentCard({ document: doc, onDelete, onView }: DocumentCardProps) {
+export function DocumentCard({
+  document: doc,
+  onDelete,
+  onView,
+  isMasterResume = false,
+  isDefaultMaster = false,
+  onDesignateMaster,
+}: DocumentCardProps) {
+  const canDesignate = doc.status === "processed" && onDesignateMaster;
   return (
     <div className="flex items-center justify-between rounded-lg border p-4 dark:border-gray-700">
       <div className="flex items-center gap-3">
@@ -35,8 +46,23 @@ export function DocumentCard({ document: doc, onDelete, onView }: DocumentCardPr
           </div>
         </div>
         <Badge variant={statusVariant[doc.status] ?? "gray"}>{doc.status}</Badge>
+        {isMasterResume && (
+          <Badge variant="green">
+            Master Resume{isDefaultMaster ? " (default)" : ""}
+          </Badge>
+        )}
       </div>
       <div className="flex items-center gap-2">
+        {canDesignate && !isMasterResume && (
+          <Button variant="secondary" size="sm" onClick={onDesignateMaster}>
+            Set as Master Resume
+          </Button>
+        )}
+        {canDesignate && isMasterResume && !isDefaultMaster && (
+          <Button variant="secondary" size="sm" onClick={onDesignateMaster}>
+            Set as Default
+          </Button>
+        )}
         <Button variant="ghost" size="sm" onClick={() => onView(doc.id)}>
           View
         </Button>
