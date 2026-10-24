@@ -13,31 +13,33 @@ export function ResumeVersionCard({ version, onView, onDelete, onRender }: Resum
   const statusVariant = version.status === "built" ? "green" : version.status === "failed" ? "red" : "yellow";
 
   return (
-    <div className="flex items-center justify-between rounded-lg border p-3 dark:border-gray-700">
-      <div className="flex items-center gap-3">
+    <div className="min-w-0 space-y-3 rounded-lg border p-3 dark:border-gray-700">
+      <div className="flex flex-wrap items-center gap-2">
         <Badge variant="gray">v{version.version_no}</Badge>
         <Badge variant={statusVariant}>{version.status}</Badge>
-        {version.provider && (
-          <span className="text-xs opacity-50">{version.provider} / {version.model}</span>
-        )}
-        <span className="text-xs opacity-40">
-          {new Date(version.created_at).toLocaleString()}
-        </span>
       </div>
-      <div className="flex gap-2">
+      <div className="min-w-0 space-y-1">
+        {version.provider && (
+          <p className="text-xs opacity-50 [overflow-wrap:anywhere]">{version.provider} / {version.model}</p>
+        )}
+        <time dateTime={version.created_at} className="block text-xs opacity-40">
+          {new Date(version.created_at).toLocaleString()}
+        </time>
+      </div>
+      <div className="flex flex-wrap gap-2 border-t pt-3 dark:border-gray-700">
         {version.status === "built" && (
           <>
-            <Button variant="secondary" size="sm" onClick={onView}>
+            <Button variant="secondary" size="sm" className="shrink-0 whitespace-nowrap px-2.5" onClick={onView}>
               View
             </Button>
             {onRender && (
-              <Button variant="secondary" size="sm" onClick={onRender}>
+              <Button variant="secondary" size="sm" className="shrink-0 whitespace-nowrap px-2.5" onClick={onRender}>
                 Render PDF
               </Button>
             )}
           </>
         )}
-        <Button variant="ghost" size="sm" onClick={onDelete}>
+        <Button variant="ghost" size="sm" className="shrink-0 whitespace-nowrap px-2.5" onClick={onDelete}>
           Delete
         </Button>
       </div>

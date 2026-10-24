@@ -115,6 +115,33 @@ def weasyprint_stub(monkeypatch: pytest.MonkeyPatch):
 
 
 class TestHtmlRenderer:
+    async def test_missing_native_libraries_report_setup_steps(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setitem(sys.modules, "weasyprint", None)
+
+        available, reason = HtmlRenderer.availability()
+
+        assert available is False
+        assert reason is not None
+        assert "Pango" in reason
+        assert "MSYS2" in reason
+        assert "ARQ worker" in reason
+        with pytest.raises(RendererUnavailableError, match="Pango"):
+            HtmlRenderer().render(_ctx(template_source=HTML_TEMPLATE), "pdf")
+
+    async def test_capabilities_report_unavailable_html(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(
+            HtmlRenderer, "availability", staticmethod(lambda: (False, "Missing Pango"))
+        )
+
+        html = next(item for item in capabilities() if item["format"] == "html")
+
+        assert html["available"] is False
+        assert html["reason"] == "Missing Pango"
+
     async def test_renders_pdf_with_stub(self, weasyprint_stub: list[str]) -> None:
         renderer = HtmlRenderer()
         data = renderer.render(_ctx(template_source=HTML_TEMPLATE), "pdf")

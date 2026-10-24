@@ -17,7 +17,7 @@ export function PageShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen">
       <nav className="border-b dark:border-gray-700">
-        <div className="mx-auto flex max-w-4xl items-center gap-6 px-8 py-3">
+        <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-8">
           <Link href="/" className="text-lg font-bold">
             Career Agent
           </Link>
@@ -34,7 +34,7 @@ export function PageShell({ children }: { children: React.ReactNode }) {
           ))}
         </div>
       </nav>
-      <main className="mx-auto max-w-4xl p-8">{children}</main>
+      <main className="mx-auto max-w-4xl p-4 sm:p-8">{children}</main>
     </div>
   );
 }

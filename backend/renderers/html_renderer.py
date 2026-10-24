@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from renderers.base import (
     BaseRenderer,
     RenderContext,
@@ -7,6 +9,21 @@ from renderers.base import (
     RendererUnavailableError,
     render_source,
 )
+
+
+def _load_weasyprint_html() -> Any:
+    try:
+        from weasyprint import HTML
+    except Exception as e:
+        raise RendererUnavailableError(
+            "WeasyPrint unavailable. HTML PDF rendering requires Pango and its native "
+            "libraries. On Windows, install MSYS2 and run "
+            "'pacman -S mingw-w64-ucrt-x86_64-pango' in its UCRT64 shell, then restart "
+            "the backend and ARQ worker. If Windows Application Control blocks the "
+            "DLLs, use the Docker worker or a Typst template. "
+            f"Details: {e}"
+        ) from e
+    return HTML
 
 
 def _inject_styles(html: str, styles: str) -> str:
@@ -27,6 +44,14 @@ class HtmlRenderer(BaseRenderer):
 
     name = "weasyprint"
 
+    @staticmethod
+    def availability() -> tuple[bool, str | None]:
+        try:
+            _load_weasyprint_html()
+        except RendererUnavailableError as e:
+            return False, str(e)
+        return True, None
+
     def supported_outputs(self) -> list[str]:
         return ["pdf"]
 
@@ -40,10 +65,7 @@ class HtmlRenderer(BaseRenderer):
         if ctx.styles_text and ctx.styles_text.strip():
             html = _inject_styles(html, ctx.styles_text)
 
-        try:
-            from weasyprint import HTML
-        except Exception as e:  # pragma: no cover - import failures are env issues
-            raise RendererUnavailableError(f"WeasyPrint unavailable: {e}") from e
+        HTML = _load_weasyprint_html()
 
         try:
             pdf: bytes = HTML(string=html).write_pdf()

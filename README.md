@@ -86,6 +86,16 @@ Native backend and worker processes read the root `.env` and then `backend/.env`
 are accepted. Keep the ARQ worker running alongside Uvicorn; parsing requests are
 queued in Redis and cannot complete without it.
 
+For HTML resume templates on native Windows, WeasyPrint also needs Pango and its
+native libraries. Install [MSYS2](https://www.msys2.org/) at `C:\msys64`, then run
+`pacman -S mingw-w64-ucrt-x86_64-pango` in its UCRT64 shell. Restart both the
+backend and worker afterward. See the [WeasyPrint Windows setup guide](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#windows).
+The Modern Typst template does not require these native libraries.
+If Windows Application Control blocks the installed DLLs (`WinError 4551`),
+choose Modern Typst or run rendering with the Docker worker, whose Linux image
+includes the required libraries. Installing Pango again will not resolve a
+Windows policy block.
+
 ## LLM Provider
 
 The platform abstracts LLM calls behind a provider plug (`backend/parsers/llm_provider.py`). Set `APP_LLM_PROVIDER` to control which backend is used:
