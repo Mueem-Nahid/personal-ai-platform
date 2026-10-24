@@ -15,6 +15,7 @@ async def get_redis() -> ArqRedis:
     global _arq_redis
     if _arq_redis is None:
         redis_settings = RedisSettings.from_dsn(settings.redis_url)
+        redis_settings.conn_timeout = 5
         _arq_redis = await create_pool(redis_settings)
         logger.info("ARQ Redis pool connected to %s", settings.redis_url)
     return _arq_redis

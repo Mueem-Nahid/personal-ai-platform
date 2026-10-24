@@ -81,6 +81,11 @@ Start the infrastructure services before running the backend natively:
 Run `alembic upgrade head` from `backend/` on first setup and after pulling new
 migrations. The backend requires these tables before application startup.
 
+Native backend and worker processes read the root `.env` and then `backend/.env`
+(backend values override root values). Both `GROQ_API_KEY` and `APP_GROQ_API_KEY`
+are accepted. Keep the ARQ worker running alongside Uvicorn; parsing requests are
+queued in Redis and cannot complete without it.
+
 ## LLM Provider
 
 The platform abstracts LLM calls behind a provider plug (`backend/parsers/llm_provider.py`). Set `APP_LLM_PROVIDER` to control which backend is used:

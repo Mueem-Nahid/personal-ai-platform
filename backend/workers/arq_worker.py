@@ -104,6 +104,7 @@ class WorkerSettings:
     on_startup = startup
     on_shutdown = shutdown
     redis_settings = RedisSettings.from_dsn(settings.redis_url)
+    redis_settings.conn_timeout = 5
     max_jobs = 3
     max_tries = 3
     poll_delay = 1.0
