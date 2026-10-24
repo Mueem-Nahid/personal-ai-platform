@@ -1,3 +1,4 @@
+from typing import TypeAlias
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -35,7 +36,7 @@ from services.profile_service import ChildEntityService
 
 router = APIRouter()
 
-type EntityServiceMap = dict[str, type]
+EntityServiceMap: TypeAlias = dict[str, type]
 
 _ENTITY_MODELS: dict[str, type] = {
     "experiences": Experience,

@@ -59,6 +59,7 @@ All parsing is dispatched to a Redis-backed ARQ worker process, decoupled from t
 # backend
 cd backend
 pip install -e ".[dev]"
+alembic upgrade head
 uvicorn main:app --reload
 
 # ARQ worker (run in a separate terminal for background job processing)
@@ -73,6 +74,11 @@ npm run dev
 # tests
 cd backend && pytest
 ```
+
+Start the infrastructure services before running the backend natively:
+`docker compose up -d --wait postgres qdrant redis minio ollama`.
+Run `alembic upgrade head` from `backend/` on first setup and after pulling new
+migrations. The backend requires these tables before application startup.
 
 ## LLM Provider
 

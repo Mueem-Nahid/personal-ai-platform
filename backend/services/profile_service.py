@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Generic, TypeVar
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +17,7 @@ from models.profile import (
     Publication,
     Skill,
 )
-from repositories.child_entity_repo import ChildEntityRepository
+from repositories.child_entity_repo import ChildEntityRepository, ModelT
 from repositories.profile_repo import ProfileRepository
 from schemas.profile import (
     AchievementCreate,
@@ -96,7 +97,10 @@ class ProfileService:
         await self._repo.delete(profile)
 
 
-class ChildEntityService[T]:
+T = TypeVar("T", bound=ModelT)
+
+
+class ChildEntityService(Generic[T]):
     """Generic service for profile child entity CRUD."""
 
     def __init__(self, session: AsyncSession, model: type[T]) -> None:
