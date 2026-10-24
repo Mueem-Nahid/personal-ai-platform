@@ -20,7 +20,8 @@ docker exec career-agent-ollama ollama pull bge-m3
 #    Frontend: http://localhost:3000
 ```
 
-For development with hot reload, use the dev script (starts backend + ARQ worker + frontend natively):
+For development with hot reload, use the dev script (starts backend + ARQ worker + frontend natively).
+It installs `bge-m3` if missing; the first run downloads the embedding model:
 ```bash
 # PowerShell
 .\scripts\dev.ps1
@@ -59,6 +60,7 @@ All parsing is dispatched to a Redis-backed ARQ worker process, decoupled from t
 # backend
 cd backend
 pip install -e ".[dev]"
+alembic upgrade head
 uvicorn main:app --reload
 
 # ARQ worker (run in a separate terminal for background job processing)
@@ -73,6 +75,26 @@ npm run dev
 # tests
 cd backend && pytest
 ```
+
+Start the infrastructure services before running the backend natively:
+`docker compose up -d --wait postgres qdrant redis minio ollama`.
+Run `alembic upgrade head` from `backend/` on first setup and after pulling new
+migrations. The backend requires these tables before application startup.
+
+Native backend and worker processes read the root `.env` and then `backend/.env`
+(backend values override root values). Both `GROQ_API_KEY` and `APP_GROQ_API_KEY`
+are accepted. Keep the ARQ worker running alongside Uvicorn; parsing requests are
+queued in Redis and cannot complete without it.
+
+For HTML resume templates on native Windows, WeasyPrint also needs Pango and its
+native libraries. Install [MSYS2](https://www.msys2.org/) at `C:\msys64`, then run
+`pacman -S mingw-w64-ucrt-x86_64-pango` in its UCRT64 shell. Restart both the
+backend and worker afterward. See the [WeasyPrint Windows setup guide](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#windows).
+The Modern Typst template does not require these native libraries.
+If Windows Application Control blocks the installed DLLs (`WinError 4551`),
+choose Modern Typst or run rendering with the Docker worker, whose Linux image
+includes the required libraries. Installing Pango again will not resolve a
+Windows policy block.
 
 ## LLM Provider
 

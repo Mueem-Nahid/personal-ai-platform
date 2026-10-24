@@ -3,16 +3,20 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+_BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(_BACKEND_DIR.parent / ".env", _BACKEND_DIR / ".env"),
         env_file_encoding="utf-8",
         env_prefix="APP_",
         extra="ignore",
+        populate_by_name=True,
     )
 
     app_name: str = "Career Agent API"
@@ -24,7 +28,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://agent:agent_secret@localhost:5432/career_agent"
     database_echo: bool = False
 
-    redis_url: str = "redis://localhost:6379/0"
+    redis_url: str = "redis://127.0.0.1:6379/0"
 
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection: str = "career_agent"
@@ -44,7 +48,9 @@ class Settings(BaseSettings):
     analysis_max_evidence_chars: int = 3000
     analysis_max_tokens: int = 2048
 
-    groq_api_key: str | None = None
+    groq_api_key: str | None = Field(
+        default=None, validation_alias=AliasChoices("APP_GROQ_API_KEY", "GROQ_API_KEY")
+    )
     gemini_api_key: str | None = None
 
     minio_endpoint: str = "localhost:9000"

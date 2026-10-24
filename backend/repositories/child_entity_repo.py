@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Generic, TypeAlias, TypeVar
 from uuid import UUID
 
 from sqlalchemy import select
@@ -8,10 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.profile import Achievement, Certificate, Education, Experience, Language, Project, Publication, Skill
 
-type ModelT = Experience | Project | Education | Skill | Certificate | Achievement | Publication | Language
+ModelT: TypeAlias = Experience | Project | Education | Skill | Certificate | Achievement | Publication | Language
+T = TypeVar("T", bound=ModelT)
 
 
-class ChildEntityRepository[T: ModelT]:
+class ChildEntityRepository(Generic[T]):
     """Generic repository for profile child entities (experience, education, etc.)."""
 
     def __init__(self, session: AsyncSession, model: type[T]) -> None:

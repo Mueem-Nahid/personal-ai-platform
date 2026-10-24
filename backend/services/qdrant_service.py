@@ -45,6 +45,9 @@ class QdrantService:
         return point_ids
 
     async def delete_by_document(self, document_id: uuid.UUID) -> None:
+        # Failed uploads may never have reached vector storage.
+        if not await self._client.collection_exists(self._collection):
+            return
         await self._client.delete(
             collection_name=self._collection,
             points_selector=qmodels.FilterSelector(

@@ -46,6 +46,18 @@ def capabilities() -> list[dict[str, Any]]:
     """Capability report for all template formats / output formats."""
     report: list[dict[str, Any]] = []
     for template_format, renderer in _RENDERERS.items():
+        if template_format == "html":
+            available, reason = HtmlRenderer.availability()
+            report.append(
+                {
+                    "format": template_format,
+                    "engine": renderer.name,
+                    "output": "pdf",
+                    "available": available,
+                    "reason": reason,
+                }
+            )
+            continue
         if template_format == "latex":
             available, reason = LatexRenderer.availability()
             report.append(

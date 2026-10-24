@@ -315,7 +315,7 @@ export default function JobDetailPage() {
       <ErrorBanner error={error} onDismiss={() => setError(null)} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-1">
+        <div className="min-w-0 space-y-4 lg:col-span-1">
           <JobInfoSection job={job} />
 
           <div className="rounded-lg border p-4 dark:border-gray-700">
@@ -411,6 +411,7 @@ export default function JobDetailPage() {
               </div>
             </details>
           )}
+          </div>
 
           <div className="rounded-lg border p-4 dark:border-gray-700">
             <h3 className="mb-3 text-sm font-semibold opacity-70">Resume Builder</h3>
@@ -528,9 +529,8 @@ export default function JobDetailPage() {
             </div>
           )}
         </div>
-        </div>
 
-        <div className="space-y-4 lg:col-span-2">
+        <div className="min-w-0 space-y-4 lg:col-span-2">
           {selectedVersion && selectedVersion.status === "built" && selectedVersion.content ? (
             editingVersion ? (
               <div className="rounded-lg border p-6 dark:border-gray-700">
@@ -803,20 +803,20 @@ function ResumeVersionViewer({
   if (!content) return null;
 
   return (
-    <div className="rounded-lg border p-6 dark:border-gray-700 space-y-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+    <div className="min-w-0 space-y-5 break-words rounded-lg border p-4 dark:border-gray-700 sm:p-6">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
+        <div className="min-w-0">
           <h3 className="text-lg font-semibold">Tailored Resume</h3>
-          <div className="mt-1 flex items-center gap-2">
+          <div className="mt-1 flex flex-wrap items-center gap-2">
             <Badge variant="gray">v{version.version_no}</Badge>
-            <span className="text-xs opacity-50">
+            <span className="min-w-0 text-xs opacity-50 [overflow-wrap:anywhere]">
               via {version.provider} / {version.model} &middot; prompt {version.prompt_version}
             </span>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
           {onRender && (
-            <Button variant="secondary" size="sm" onClick={onRender}>
+            <Button variant="secondary" size="sm" className="whitespace-nowrap" onClick={onRender}>
               Render PDF
             </Button>
           )}
