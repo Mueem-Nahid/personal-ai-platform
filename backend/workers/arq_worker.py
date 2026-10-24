@@ -99,8 +99,22 @@ async def render_document(ctx: dict, job_id: str) -> dict:
     return {"job_id": job_id, "status": "completed", "type": "render"}
 
 
+async def optimize_resume(ctx: dict, version_id: str) -> dict:
+    import uuid
+
+    from core.database import SessionLocal
+    from services.ats_service import AtsService
+
+    async with SessionLocal() as session:
+        await AtsService(session).run_refinement(uuid.UUID(version_id))
+    return {"version_id": version_id, "type": "ats-refinement"}
+
+
 class WorkerSettings:
-    functions = [parse_url, parse_text, parse_pdf, analyze_job, build_resume, render_document]
+    functions = [
+        parse_url, parse_text, parse_pdf, analyze_job, build_resume,
+        render_document, optimize_resume,
+    ]
     on_startup = startup
     on_shutdown = shutdown
     redis_settings = RedisSettings.from_dsn(settings.redis_url)

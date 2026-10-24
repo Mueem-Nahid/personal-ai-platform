@@ -17,6 +17,7 @@ export function ResumeVersionCard({ version, onView, onDelete, onRender }: Resum
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="gray">v{version.version_no}</Badge>
         <Badge variant={statusVariant}>{version.status}</Badge>
+        {version.parent_version_id && <Badge variant="blue">refined</Badge>}
       </div>
       <div className="min-w-0 space-y-1">
         {version.provider && (

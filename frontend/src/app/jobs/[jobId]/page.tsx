@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/organisms/PageHeader";
 import { ResumeVersionCard } from "@/components/molecules/ResumeVersionCard";
 import { RenderResumeDialog } from "@/components/organisms/RenderResumeDialog";
 import { ResumeContentEditor } from "@/components/organisms/ResumeContentEditor";
+import { AtsOptimizer } from "@/components/organisms/AtsOptimizer";
 
 const POLL_TIMEOUT = 120000;
 const POLL_INTERVAL = 2000;
@@ -259,6 +260,37 @@ export default function JobDetailPage() {
     setVersionTrace(null);
     setVersionTraceOpen(false);
     setEditingVersion(false);
+  };
+
+  const handleRefineResume = async (fingerprint: string) => {
+    if (!selectedVersion || buildingResume) return;
+    const source = selectedVersion;
+    setBuildingResume(true);
+    setResumeMessage("Refining resume from ATS suggestions...");
+    setError(null);
+    try {
+      const result = await api.refineResume(source.id, fingerprint);
+      setResumeVersions((prev) => [{
+        id: result.resume_version_id, profile_id: source.profile_id, job_id: source.job_id,
+        master_resume_id: source.master_resume_id, parent_version_id: source.id,
+        version_no: result.version_no, status: "building",
+        created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      }, ...prev]);
+      await pollResumeVersion(result.resume_version_id);
+      const refined = await api.getResumeVersion(result.resume_version_id);
+      if (refined.status === "failed") {
+        setSelectedVersion(source);
+        throw new Error(refined.error || "ATS refinement failed");
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "ATS refinement failed");
+      throw e;
+    } finally {
+      if (isMounted.current) {
+        setBuildingResume(false);
+        setResumeMessage(null);
+      }
+    }
   };
 
   const handleUpdateVersionContent = async (content: ResumeVersion["content"]) => {
@@ -578,6 +610,15 @@ export default function JobDetailPage() {
                 </pre>
               </details>
             </div>
+          )}
+          {selectedVersion && selectedVersion.status === "built" && selectedVersion.content && !editingVersion && (
+            <AtsOptimizer
+              key={selectedVersion.id}
+              version={selectedVersion}
+              disabled={buildingResume}
+              onEdit={() => setEditingVersion(true)}
+              onRefine={handleRefineResume}
+            />
           )}
         </div>
       </div>

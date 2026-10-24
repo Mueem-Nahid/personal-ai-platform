@@ -1,6 +1,6 @@
 # Career Agent Platform
 
-Privacy-respectful hybrid AI platform for personalized job applications. Built with FastAPI, Next.js, and open-source models. Embeddings and sensitive documents run locally; job-post parsing uses a free cloud LLM (Groq) for speed. No telemetry, no paid services.
+Hybrid AI platform for personalized job applications, built with FastAPI, Next.js, and open-source models. Upload storage, embeddings, ATS checks, and document rendering run locally. Parsing, analysis, resume tailoring, and ATS refinement use the configured LLM provider (Groq by default; Ollama for local inference). No telemetry or paid-service requirement.
 
 ## Quickstart
 
@@ -110,7 +110,12 @@ Switch at any time by changing `APP_LLM_PROVIDER` in your `.env` or Docker envir
 
 ## Status
 
-Phase 5 — Resume Builder **complete**. Tailor resumes to specific jobs with versioning (v1, v2, v3). Vector retrieval of matching CV sections via Qdrant. LangGraph agent rewrites/reorders bullet points. See `docs/roadmap/phases.md` for the 16-phase plan.
+Phase 7 — ATS Optimizer **complete**. Open a job, view a built resume version, and
+use **ATS Optimizer → Run ATS check** for seven local checks and prioritized
+suggestions. Edit and recheck, or **Refine into new version** to preserve the
+source and compare before/after scores. The score estimates content quality;
+exported PDF layout and employer-specific ATS behavior are outside its scope.
+See [ADR 0008](docs/adr/0008-ats-optimizer.md) and the [roadmap](docs/roadmap/phases.md).
 
 ## License
 

@@ -58,6 +58,12 @@ class ResumeVersion(UUIDMixin, TimestampMixin, Base):
     provider: Mapped[str | None] = mapped_column(String(20), nullable=True)
     model: Mapped[str | None] = mapped_column(String(100), nullable=True)
     prompt_version: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    ats_report: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    optimization_context: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    ats_baseline_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    parent_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("resume_versions.id", ondelete="SET NULL"), nullable=True
+    )
 
     __table_args__ = (
         UniqueConstraint(
