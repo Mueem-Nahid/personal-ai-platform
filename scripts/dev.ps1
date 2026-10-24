@@ -10,6 +10,18 @@ if ($LASTEXITCODE -ne 0) {
     throw "Infrastructure startup failed. Fix the Docker error before launching dev servers."
 }
 
+Write-Host "`nChecking embedding model (bge-m3)..." -ForegroundColor Yellow
+$embeddingModels = docker exec career-agent-ollama ollama list
+if ($LASTEXITCODE -ne 0) {
+    throw "Cannot list Ollama models. Check the Ollama container before launching dev servers."
+}
+if (-not ($embeddingModels -match '^bge-m3(:latest)?\s')) {
+    docker exec career-agent-ollama ollama pull bge-m3
+    if ($LASTEXITCODE -ne 0) {
+        throw "Embedding model installation failed. Document processing requires bge-m3."
+    }
+}
+
 Write-Host "`nRunning database migrations..." -ForegroundColor Yellow
 Push-Location backend
 try {

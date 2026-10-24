@@ -20,7 +20,8 @@ docker exec career-agent-ollama ollama pull bge-m3
 #    Frontend: http://localhost:3000
 ```
 
-For development with hot reload, use the dev script (starts backend + ARQ worker + frontend natively):
+For development with hot reload, use the dev script (starts backend + ARQ worker + frontend natively).
+It installs `bge-m3` if missing; the first run downloads the embedding model:
 ```bash
 # PowerShell
 .\scripts\dev.ps1
