@@ -77,7 +77,7 @@ async def _complete_groq(
         # Reasoning tokens count toward max_tokens on Groq.
         body["reasoning_effort"] = "low"
         body["reasoning_format"] = "parsed"
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=settings.llm_timeout_seconds) as client:
         response = await asyncio.wait_for(
             client.post(
                 "https://api.groq.com/openai/v1/chat/completions",

@@ -261,6 +261,8 @@ export interface ResumeVersion {
   profile_id: string;
   job_id: string;
   master_resume_id: string;
+  parent_version_id?: string | null;
+  ats_baseline_score?: number | null;
   version_no: number;
   status: string;
   content?: ResumeContent | null;
@@ -283,6 +285,41 @@ export interface ResumeVersionTrace {
   prompt_text?: string | null;
   evidence_text?: string | null;
   raw_response?: string | null;
+}
+
+export type AtsCategory = "keyword_match" | "action_verbs" | "length" | "formatting" |
+  "quantified_achievements" | "missing_skills" | "readability";
+
+export interface AtsCheck {
+  category: AtsCategory;
+  label: string;
+  score: number | null;
+  weight: number;
+  summary: string;
+}
+
+export interface AtsSuggestion {
+  category: AtsCategory;
+  priority: "high" | "medium" | "low";
+  message: string;
+}
+
+export interface AtsReport {
+  resume_version_id: string;
+  overall_score: number;
+  checks: AtsCheck[];
+  suggestions: AtsSuggestion[];
+  matched_keywords: string[];
+  missing_keywords: string[];
+  missing_skills: string[];
+  word_count: number;
+  scoring_version: string;
+  fingerprint: string;
+  evaluated_at: string;
+  is_stale: boolean;
+  baseline_score: number | null;
+  score_delta: number | null;
+  limitations: string[];
 }
 
 export type TemplateFormat = "html" | "typst" | "latex" | "docx";

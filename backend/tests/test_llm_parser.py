@@ -83,9 +83,12 @@ async def test_complete_groq_gpt_oss_sends_reasoning_params():
         mock_settings.groq_api_key = "test-key"
         mock_settings.llm_timeout_seconds = 10.0
 
-        with patch("parsers.llm_provider.httpx.AsyncClient", return_value=FakeClient()):
+        with patch(
+            "parsers.llm_provider.httpx.AsyncClient", return_value=FakeClient()
+        ) as client_factory:
             result = await complete("Parse this job", json_mode=True)
             assert "title" in result
+            client_factory.assert_called_once_with(timeout=10.0)
 
     assert captured["model"] == "openai/gpt-oss-120b"
     assert captured["reasoning_effort"] == "low"

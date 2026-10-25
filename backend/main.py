@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes.analyses import router as analyses_router
+from api.routes.ats import router as ats_router
 from api.routes.health import router as health_router
 from api.routes.jobs import router as jobs_router
 from api.routes.knowledge import router as knowledge_router
@@ -244,6 +245,7 @@ def create_app() -> FastAPI:
         prefix=f"{settings.api_v1_prefix}/resumes",
         tags=["resumes"],
     )
+    app.include_router(ats_router, prefix=f"{settings.api_v1_prefix}/resumes", tags=["ats"])
     app.include_router(
         templates_router,
         prefix=f"{settings.api_v1_prefix}/templates",

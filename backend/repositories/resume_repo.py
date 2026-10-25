@@ -73,6 +73,10 @@ class ResumeVersionRepository:
         return await self._session.get(ResumeVersion, version_id)
 
     async def next_version_no(self, profile_id: UUID, job_id: UUID) -> int:
+        from models.profile import Profile
+
+        # Builders and refinements share the same version sequence.
+        await self._session.execute(select(Profile.id).where(Profile.id == profile_id).with_for_update())
         stmt = select(func.coalesce(func.max(ResumeVersion.version_no), 0)).where(
             ResumeVersion.profile_id == profile_id,
             ResumeVersion.job_id == job_id,

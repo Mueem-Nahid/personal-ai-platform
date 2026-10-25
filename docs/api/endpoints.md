@@ -114,3 +114,26 @@ Job `status`:
 - POST jobs endpoints return 202 Accepted (async processing via ARQ worker).
 - LLM provider is configured via `APP_LLM_PROVIDER` env (default: `groq`). See [ADR 0004](../adr/0004-cloud-llm-for-parsing.md).
 - No auth in Phase 0 (local only). Token auth added in a later phase if multi-user.
+
+## ATS Optimizer (Phase 7)
+
+All paths below use the `/api/v1` prefix.
+
+| Method | Path | Result |
+|---|---|---|
+| GET | `/resumes/{version_id}/ats` | Latest cached report or `null`, with `is_stale` |
+| POST | `/resumes/{version_id}/ats` | Compute and save all seven local checks |
+| POST | `/resumes/{version_id}/refine` | Queue a new resume version (HTTP 202) |
+
+Refinement body: `{"fingerprint": "<fingerprint from the current ATS report>"}`.
+The response includes `resume_version_id`, `version_no`, and `status`. Poll the
+existing resume-version endpoint until built or failed, then GET its ATS report
+for the new score, baseline, and delta. Stale fingerprints return HTTP 409;
+unavailable queues return HTTP 503. Missing versions return HTTP 404 and resumes
+without completed content return HTTP 400.
+
+Reports include `overall_score`, seven `checks` (score, weight, explanation),
+prioritized `suggestions`, matched/missing keywords, missing job skills, word
+count, scoring version, evaluation time, and limitations. Editing a resume
+invalidates its report; recheck before refining. Scores are content heuristics,
+not employer ATS results or PDF layout inspection. See [ADR 0008](../adr/0008-ats-optimizer.md).

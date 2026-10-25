@@ -11,7 +11,7 @@
 | **4** | Job analysis agent | Match report (gaps, ATS score, fit) ✅ | 2 wk |
 | **5** | Resume builder | Tailored resume with versioning | 3 wk |
 | **6** | PDF engine | HTML/LaTeX/Typst/DOCX → PDF ✅ | 2 wk |
-| **7** | ATS optimizer | Score + suggestions | 2 wk |
+| **7** | ATS optimizer | Seven local checks, suggestions, versioned refinement ✅ | 2 wk |
 | **8** | Cover letter agent | Company/role-specific letters | 1 wk |
 | **9** | Interview agent | Q generation + mock interview + feedback | 3 wk |
 | **10** | Application tracker | Pipeline tracking + dashboard | 2 wk |
@@ -78,10 +78,16 @@
 - Frontend: `/templates` page (gallery, code editor, live PDF preview, PDF import), render/download dialog + resume content editor on job detail page
 - See [ADR 0007](../adr/0007-pdf-engine-renderer-choices.md)
 
-### Phase 7 — ATS Optimizer
+### Phase 7 — ATS Optimizer ✅
 - Checks: Keyword match, Action verbs, Length, Formatting, Quantified achievements, Missing skills, Readability
 - Output: Score + Suggestions
 - Iterative refinement loop
+- Local deterministic scoring with per-check explanations, weighted total, and N/A handling
+- Saved reports become stale when resume/job content changes
+- Manual edit/recheck or ARQ refinement into a new version, with baseline/delta and audit trail
+- Guardrails reject new numeric values and unsupported job skills; source versions are preserved
+- Formatting covers structured content; PDF layout and employer-specific ATS scores are outside scope
+- See [ADR 0008](../adr/0008-ats-optimizer.md)
 
 ### Phase 8 — Cover Letter Agent
 - Generate: Company-specific, Hiring-manager-specific, Role-specific

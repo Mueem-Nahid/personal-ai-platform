@@ -1,4 +1,5 @@
 import type {
+  AtsReport,
   Profile,
   ProfileCreate,
   ProfileUpdate,
@@ -211,6 +212,14 @@ export const api = {
     request<ResumeVersion>(`/resumes/${id}/content`, {
       method: "PUT",
       body: JSON.stringify({ content }),
+    }),
+
+  // ATS scoring and refinement
+  getAtsReport: (id: string) => request<AtsReport | null>(`/resumes/${id}/ats`),
+  checkAts: (id: string) => request<AtsReport>(`/resumes/${id}/ats`, { method: "POST" }),
+  refineResume: (id: string, fingerprint: string) =>
+    request<{ resume_version_id: string; version_no: number; status: string }>(`/resumes/${id}/refine`, {
+      method: "POST", body: JSON.stringify({ fingerprint }),
     }),
 
   // Templates & renders

@@ -52,6 +52,8 @@ class ResumeVersionOut(ORMBase):
     profile_id: UUID
     job_id: UUID
     master_resume_id: UUID
+    parent_version_id: UUID | None = None
+    ats_baseline_score: int | None = None
     version_no: int
     status: str
     content: ResumeContent | None = None
